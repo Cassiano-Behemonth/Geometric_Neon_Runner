@@ -4,51 +4,50 @@ import com.example.geometric_neon_runner.game.entities.*
 import com.example.geometric_neon_runner.game.systems.*
 import com.example.geometric_neon_runner.game.render.GameRenderer
 
-class GameLoop(
-    private val renderer: GameRenderer,
-    private val screenWidth: Float,
-    private val screenHeight: Float
-) {
-    private val player = Player(screenWidth / 2 - 50f, screenHeight - 200f, 100f, 100f, 15f)
-    private val enemies = mutableListOf<Enemy>()
-    private val background = Background(0f, -screenHeight, 5f, screenHeight)
+class GameLoop(private val gameView: GameView) : Runnable {
+    @Volatile
+    private var running = false
+    private var thread: Thread? = null
 
-    private val spawnSystem = SpawnSystem(screenWidth)
-    private val collisionSystem = CollisionSystem()
-    private val scoreSystem = ScoreSystem()
+    fun start() {
+        if (running) return
+        running = true
+        thread = Thread(this, "GameLoopThread")
+        thread?.start()
+    }
 
-    var isRunning = true
-
-    fun update() {
-        if (!isRunning) return
-
-        background.update()
-        spawnSystem.update(enemies)
-        enemies.forEach { it.update() }
-
-
-        enemies.removeAll { it.isOffScreen(screenHeight) }
-
-
-        if (collisionSystem.checkCollisions(player, enemies)) {
-            isRunning = false
-        } else {
-            scoreSystem.add(1)
+    fun stop() {
+        running = false
+        try {
+            thread?.join(2000)
+        } catch (e: InterruptedException) {
+            // ignorar
+        } finally {
+            thread = null
         }
     }
 
-    fun draw(canvas: android.graphics.Canvas) {
-        renderer.draw(canvas, player, enemies, background, scoreSystem.score)
-    }
+    override fun run() {
+        var lastTime = System.currentTimeMillis()
+        while (running) {
+            val currentTime = System.currentTimeMillis()
+            val deltaTime = (currentTime - lastTime) / 1000f
+            lastTime = currentTime
 
-    fun movePlayer(dx: Float, dy: Float) {
-        player.x += dx
-        player.y += dy
-    }
+            try {
+                gameView.update(deltaTime)
+                gameView.render()
+            } catch (t: Throwable) {
 
-    fun reset() {
-        enemies.clear()
-        scoreSystem.reset()
-        isRunning = true
+                t.printStackTrace()
+            }
+
+
+            try {
+                Thread.sleep(16)
+            } catch (ie: InterruptedException) {
+
+            }
+        }
     }
 }
