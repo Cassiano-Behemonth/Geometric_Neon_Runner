@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "851312808245",
+    "project_id": "geometric-neon-runner",
+    "storage_bucket": "geometric-neon-runner.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:851312808245:android:946d47e05e1ffccebe3c7c",
+        "android_client_info": {
+          "package_name": "com.example.geometric_neon_runner"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBvEcYtHNx-qCa9tnDLjauPksi7SKsnrUg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
