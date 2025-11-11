@@ -1,11 +1,12 @@
 package com.example.geometric_neon_runner.data.remote
 
-import com.example.geometric_neon_runner.data.models.*
+import com.example.geometric_neon_runner.data.model.*
 import com.google.android.gms.tasks.Tasks
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.auth.User
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.lang.Exception

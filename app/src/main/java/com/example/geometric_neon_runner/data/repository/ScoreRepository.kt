@@ -1,16 +1,14 @@
 package com.example.geometric_neon_runner.data.repository
 
-import android.content.Context
 import com.example.geometric_neon_runner.data.local.AppDatabase
-import com.example.geometric_neon_runner.data.models.Score
-import com.example.geometric_neon_runner.data.models.Result
+import com.example.geometric_neon_runner.data.model.Score
 import com.example.geometric_neon_runner.data.remote.FirestoreSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 
 class ScoreRepository(
-        private val context: Context,
+        private val context: AppDatabase,
         private val firestoreSource: FirestoreSource = FirestoreSource()
 ) {
     private val db by lazy { AppDatabase.getInstance(context) }

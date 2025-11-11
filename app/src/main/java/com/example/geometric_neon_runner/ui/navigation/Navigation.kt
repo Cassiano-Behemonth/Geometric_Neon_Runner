@@ -1,123 +1,173 @@
 package com.example.geometric_neon_runner.ui.navigation
 
+
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.example.geometric_neon_runner.ui.screens.AuthScreens
-import com.example.geometric_neon_runner.ui.screens.GameOverScreen
-import com.example.geometric_neon_runner.ui.screens.GameScreen
-import com.example.geometric_neon_runner.ui.screens.MenuScreen
-import com.example.geometric_neon_runner.ui.screens.ModeSelectionScreen
-import com.example.geometric_neon_runner.ui.screens.RankingScreen
+import com.example.geometric_neon_runner.data.local.AppDatabase
+import com.example.geometric_neon_runner.data.repository.AuthRepository
+import com.example.geometric_neon_runner.data.repository.ScoreRepository
+import com.example.geometric_neon_runner.ui.screens.*
+import com.example.geometric_neon_runner.ui.viewmodels.*
 
 
 sealed class Screen(val route: String) {
     object Login : Screen("login")
     object Register : Screen("register")
     object Menu : Screen("menu")
-    object ModeSelection : Screen("mode_selection")
 
     object Game : Screen("game/{mode}") {
         fun createRoute(mode: String) = "game/$mode"
     }
-    object GameOver : Screen("game_over/{score}/{time}/{mode}") {
-        fun createRoute(score: Int, time: Int, mode: String) = "game_over/$score/$time/$mode"
+
+    object GameOver : Screen("gameover/{score}/{time}/{mode}") {
+        fun createRoute(score: Int, time: Int, mode: String) = "gameover/$score/$time/$mode"
     }
+
     object Ranking : Screen("ranking/{mode}") {
-        fun createRoute(mode: String) = "ranking/$mode"
+        fun createRoute(mode: String = "NORMAL") = "ranking/$mode"
     }
 }
 
 
 @Composable
-fun NavGraph(navController: NavHostController) {
+fun AppNavigation(
+        navController: NavHostController = rememberNavController()
+) {
+    val context = LocalContext.current
+
+
+    val database = AppDatabase.getInstance(context)
+    val authRepository = AuthRepository(context)
+    val scoreRepository = ScoreRepository(database)
+
+
+    val startDestination = if (authRepository.isUserLoggedIn()) {
+        Screen.Menu.route
+    } else {
+        Screen.Login.route
+    }
+
     NavHost(
-        navController = navController,
-        startDestination = Screen.Login.route
+            navController = navController,
+            startDestination = startDestination
     ) {
+
+
         composable(Screen.Login.route) {
-            AuthScreens.LoginScreen(
-                onLoginSuccess = { navController.navigate(Screen.Menu.route) },
-                onNavigateToRegister = { navController.navigate(Screen.Register.route) }
+            val viewModel: LoginViewModel = viewModel(
+                    factory = ViewModelFactory { LoginViewModel(authRepository) }
+            )
+
+            LoginScreen(
+                    navController = navController,
+                    viewModel = viewModel
             )
         }
+
+
         composable(Screen.Register.route) {
-            AuthScreens.RegisterScreen(
-                onRegisterSuccess = { navController.navigate(Screen.Menu.route) },
-                onNavigateBackToLogin = { navController.popBackStack() }
+            val viewModel: RegisterViewModel = viewModel(
+                    factory = ViewModelFactory { RegisterViewModel(authRepository) }
+            )
+
+            RegisterScreen(
+                    navController = navController,
+                    viewModel = viewModel
             )
         }
+
 
         composable(Screen.Menu.route) {
+            val viewModel: MenuViewModel = viewModel(
+                    factory = ViewModelFactory { MenuViewModel(authRepository, scoreRepository) }
+            )
+
             MenuScreen(
-                onPlayClicked = { navController.navigate(Screen.ModeSelection.route) },
-                onRankingClicked = { navController.navigate(Screen.Ranking.createRoute("Normal")) },
-                onProfileClicked = {  },
-                onExitClicked = {  }
+                    navController = navController,
+                    viewModel = viewModel
             )
         }
 
-        composable(Screen.ModeSelection.route) {
-            ModeSelectionScreen(
-                onModeSelected = { mode ->
-                    navController.navigate(Screen.Game.createRoute(mode))
-                },
-                onBackPressed = { navController.popBackStack() }
-            )
-        }
 
         composable(
-            route = Screen.Game.route,
-            arguments = listOf(navArgument("mode") { type = NavType.StringType })
+                route = Screen.Game.route,
+                arguments = listOf(
+                        navArgument("mode") { type = NavType.StringType }
+                )
         ) { backStackEntry ->
-            val mode = backStackEntry.arguments?.getString("mode") ?: "Normal"
+            val mode = backStackEntry.arguments?.getString("mode") ?: "NORMAL"
+            val viewModel: GameViewModel = viewModel(
+                    factory = ViewModelFactory { GameViewModel(scoreRepository, authRepository) }
+            )
+
             GameScreen(
-                mode = mode,
-                onGameOver = { score, time ->
-                    navController.navigate(Screen.GameOver.createRoute(score, time, mode)) {
-                        popUpTo(Screen.Menu.route) { inclusive = false }
-                    }
-                }
+                    navController = navController,
+                    viewModel = viewModel,
+                    mode = mode
             )
         }
 
+
         composable(
-            route = Screen.GameOver.route,
-            arguments = listOf(
-                navArgument("score") { type = NavType.IntType },
-                navArgument("time") { type = NavType.IntType },
-                navArgument("mode") { type = NavType.StringType }
-            )
+                route = Screen.GameOver.route,
+                arguments = listOf(
+                        navArgument("score") { type = NavType.IntType },
+                        navArgument("time") { type = NavType.IntType },
+                        navArgument("mode") { type = NavType.StringType }
+                )
         ) { backStackEntry ->
             val score = backStackEntry.arguments?.getInt("score") ?: 0
             val time = backStackEntry.arguments?.getInt("time") ?: 0
-            val mode = backStackEntry.arguments?.getString("mode") ?: "Normal"
+            val mode = backStackEntry.arguments?.getString("mode") ?: "NORMAL"
+
+            val viewModel: GameOverViewModel = viewModel(
+                    factory = ViewModelFactory { GameOverViewModel(scoreRepository) }
+            )
+
             GameOverScreen(
-                finalScore = score,
-                timePlayed = time,
-                mode = mode,
-                onPlayAgain = { navController.navigate(Screen.Game.createRoute(mode)) },
-                onGoToMenu = {
-                    navController.popBackStack(Screen.Menu.route, inclusive = false)
-                },
-                onGoToRanking = {
-                    navController.navigate(Screen.Ranking.createRoute(mode))
-                }
+                    navController = navController,
+                    viewModel = viewModel,
+                    score = score,
+                    time = time,
+                    mode = mode
             )
         }
 
+
         composable(
-            route = Screen.Ranking.route,
-            arguments = listOf(navArgument("mode") { type = NavType.StringType })
+                route = Screen.Ranking.route,
+                arguments = listOf(
+                        navArgument("mode") {
+                            type = NavType.StringType
+                            defaultValue = "NORMAL"
+                        }
+                )
         ) { backStackEntry ->
-            val initialMode = backStackEntry.arguments?.getString("mode") ?: "Normal"
+            val mode = backStackEntry.arguments?.getString("mode") ?: "NORMAL"
+            val viewModel: RankingViewModel = viewModel(
+                    factory = ViewModelFactory { RankingViewModel(scoreRepository, authRepository) }
+            )
+
             RankingScreen(
-                initialMode = initialMode,
-                onBackPressed = { navController.popBackStack() }
+                    navController = navController,
+                    viewModel = viewModel,
+                    initialMode = mode
             )
         }
+    }
+}
+
+
+class ViewModelFactory<T>(private val creator: () -> T) : androidx.lifecycle.ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+        return creator() as T
     }
 }

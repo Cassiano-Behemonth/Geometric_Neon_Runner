@@ -2,9 +2,10 @@ package com.example.geometric_neon_runner.data.repository
 
 import android.content.Context
 import android.content.SharedPreferences
-import com.example.geometric_neon_runner.data.models.*
+import com.example.geometric_neon_runner.data.model.*
 import com.example.geometric_neon_runner.data.remote.FirestoreSource
 import com.example.geometric_neon_runner.data.remote.FirebaseAuthSource
+import com.google.firebase.firestore.auth.User
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 

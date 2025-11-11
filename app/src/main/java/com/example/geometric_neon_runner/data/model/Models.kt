@@ -1,4 +1,4 @@
-package com.example.geometric_neon_runner.data.models
+package com.example.geometric_neon_runner.data.model
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey

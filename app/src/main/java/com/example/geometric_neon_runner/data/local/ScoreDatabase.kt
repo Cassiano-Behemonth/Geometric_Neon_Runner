@@ -2,8 +2,8 @@ package com.example.geometric_neon_runner.data.local
 
 import android.content.Context
 import androidx.room.*
-import com.example.geometric_neon_runner.data.models.GameMode
-import com.example.geometric_neon_runner.data.models.Score
+import com.example.geometric_neon_runner.data.model.GameMode
+import com.example.geometric_neon_runner.data.model.Score
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.*
