@@ -92,13 +92,17 @@ class ScoreSystem {
     private var timeSeconds: Float = 0f
     val pointsPerSecond = 15f
 
+    // Método que retorna a pontuação
+
     fun update(deltaTime: Float) {
         timeSeconds += deltaTime
         score = (timeSeconds * pointsPerSecond).toInt()
     }
 
-    fun getScore(): Int = score
+    // Retorna o tempo em segundos
     fun getTime(): Int = timeSeconds.toInt()
+
+    // Formata o tempo para minutos e segundos
     fun getFormattedTime(): String {
         val total = getTime()
         val mm = total / 60
@@ -106,6 +110,7 @@ class ScoreSystem {
         return String.format("%02d:%02d", mm, ss)
     }
 
+    // Reseta o sistema de pontuação
     fun reset() {
         timeSeconds = 0f
         score = 0

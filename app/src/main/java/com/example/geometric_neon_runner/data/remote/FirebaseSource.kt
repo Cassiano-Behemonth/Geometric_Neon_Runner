@@ -1,12 +1,12 @@
 package com.example.geometric_neon_runner.data.remote
 
 import com.example.geometric_neon_runner.data.model.*
+import com.example.geometric_neon_runner.utils.Result
 import com.google.android.gms.tasks.Tasks
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
-import com.google.firebase.firestore.auth.User
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.lang.Exception
@@ -40,11 +40,11 @@ class FirebaseAuthSource(
                 val saveResult = firestoreSource.saveUser(user)
                 when (saveResult) {
                     is Result.Success -> Result.Success(user)
-                    is Result.Error -> Result.Error(saveResult.exception, saveResult.message)
-                    else -> Result.Error(Exception("Unknown Firestore result"))
+                    is Result.Error -> Result.Error(saveResult.message, saveResult.exception)
+                    else -> Result.Error("Unknown Firestore result")
                 }
             } catch (e: Exception) {
-                Result.Error(e)
+                Result.Error(e.message ?: "Unknown error", e)
             }
         }
     }
@@ -59,11 +59,11 @@ class FirebaseAuthSource(
                 val userResult = firestoreSource.getUser(firebaseUser.uid)
                 when (userResult) {
                     is Result.Success -> Result.Success(userResult.data)
-                    is Result.Error -> Result.Error(userResult.exception, userResult.message)
-                    else -> Result.Error(Exception("Unknown Firestore getUser result"))
+                    is Result.Error -> Result.Error(userResult.message, userResult.exception)
+                    else -> Result.Error("Unknown Firestore getUser result")
                 }
             } catch (e: Exception) {
-                Result.Error(e)
+                Result.Error(e.message ?: "Unknown error", e)
             }
         }
     }
@@ -79,7 +79,7 @@ class FirebaseAuthSource(
                 Tasks.await(t)
                 Result.Success(Unit)
             } catch (e: Exception) {
-                Result.Error(e)
+                Result.Error(e.message ?: "Unknown error", e)
             }
         }
     }
@@ -88,6 +88,11 @@ class FirebaseAuthSource(
 class FirestoreSource(
         private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
 ) {
+
+    companion object {
+        const val COLLECTION_USERS = "users"
+        const val COLLECTION_SCORES = "scores"
+    }
 
     private val usersRef = firestore.collection(COLLECTION_USERS)
     private val scoresRef = firestore.collection(COLLECTION_SCORES)
@@ -99,7 +104,7 @@ class FirestoreSource(
                 Tasks.await(task)
                 Result.Success(Unit)
             } catch (e: Exception) {
-                Result.Error(e)
+                Result.Error(e.message ?: "Unknown error", e)
             }
         }
     }
@@ -112,7 +117,7 @@ class FirestoreSource(
                 if (!doc.exists()) throw Exception("User not found")
                 Result.Success(User.fromDocument(doc))
             } catch (e: Exception) {
-                Result.Error(e)
+                Result.Error(e.message ?: "Unknown error", e)
             }
         }
     }
@@ -135,7 +140,7 @@ class FirestoreSource(
                 Tasks.await(txResult)
                 Result.Success(Unit)
             } catch (e: Exception) {
-                Result.Error(e)
+                Result.Error(e.message ?: "Unknown error", e)
             }
         }
     }
@@ -147,7 +152,7 @@ class FirestoreSource(
                 val docRef = Tasks.await(task)
                 Result.Success(docRef.id)
             } catch (e: Exception) {
-                Result.Error(e)
+                Result.Error(e.message ?: "Unknown error", e)
             }
         }
     }
@@ -167,7 +172,7 @@ class FirestoreSource(
                 }
                 Result.Success(list)
             } catch (e: Exception) {
-                Result.Error(e)
+                Result.Error(e.message ?: "Unknown error", e)
             }
         }
     }
@@ -181,7 +186,7 @@ class FirestoreSource(
                 val list = snap.documents.map { doc -> Score.fromMap(doc.data ?: emptyMap()) }
                 Result.Success(list)
             } catch (e: Exception) {
-                Result.Error(e)
+                Result.Error(e.message ?: "Unknown error", e)
             }
         }
     }
@@ -198,7 +203,7 @@ class FirestoreSource(
                 val countHigher = snap.size()
                 Result.Success(countHigher + 1)
             } catch (e: Exception) {
-                Result.Error(e)
+                Result.Error(e.message ?: "Unknown error", e)
             }
         }
     }

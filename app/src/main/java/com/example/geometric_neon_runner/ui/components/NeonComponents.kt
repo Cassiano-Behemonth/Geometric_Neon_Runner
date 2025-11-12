@@ -31,7 +31,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -42,12 +41,12 @@ import com.example.geometric_neon_runner.ui.color.NeonPink
 
 @Composable
 fun NeonButton(
-    onClick: () -> Unit,
-    text: String,
-    neonColor: Color = NeonCyan,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    contentPadding: PaddingValues = ButtonDefaults.ContentPadding
+        onClick: () -> Unit,
+        text: String,
+        neonColor: Color = NeonCyan,
+        modifier: Modifier = Modifier,
+        enabled: Boolean = true,
+        contentPadding: PaddingValues = ButtonDefaults.ContentPadding
 ) {
     // Efeito de pulsação suave para o brilho (opcional, mas adiciona vida)
     val infiniteTransition = rememberInfiniteTransition(label = "neon_glow_pulse")

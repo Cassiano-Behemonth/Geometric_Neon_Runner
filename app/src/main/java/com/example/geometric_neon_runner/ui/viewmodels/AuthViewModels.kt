@@ -5,28 +5,22 @@ import androidx.lifecycle.viewModelScope
 import com.example.geometric_neon_runner.data.model.User
 import com.example.geometric_neon_runner.data.repository.AuthRepository
 import com.example.geometric_neon_runner.utils.Result
-import com.google.firebase.firestore.auth.User
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-
 class LoginViewModel(
         private val authRepository: AuthRepository
 ) : ViewModel() {
 
-
     private val _loginState = MutableStateFlow<Result<User>?>(null)
     val loginState: StateFlow<Result<User>?> = _loginState.asStateFlow()
-
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-
     fun login(email: String, password: String) {
-
         if (!validateEmail(email)) {
             _loginState.value = Result.Error("Email inválido")
             return
@@ -37,7 +31,6 @@ class LoginViewModel(
             return
         }
 
-
         _isLoading.value = true
         _loginState.value = Result.Loading
 
@@ -46,45 +39,37 @@ class LoginViewModel(
                 val result = authRepository.login(email, password)
                 _loginState.value = result
             } catch (e: Exception) {
-                _loginState.value = Result.Error(e.message ?: "Erro ao fazer login")
+                _loginState.value = Result.Error(e.message ?: "Erro ao fazer login", e)
             } finally {
                 _isLoading.value = false
             }
         }
     }
 
-
     fun validateEmail(email: String): Boolean {
         return android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()
     }
 
-
     fun validatePassword(password: String): Boolean {
         return password.length >= 6
     }
-
 
     fun clearError() {
         _loginState.value = null
     }
 }
 
-
 class RegisterViewModel(
         private val authRepository: AuthRepository
 ) : ViewModel() {
 
-    // Estado do registro
     private val _registerState = MutableStateFlow<Result<User>?>(null)
     val registerState: StateFlow<Result<User>?> = _registerState.asStateFlow()
 
-    // Estado de loading
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-
     fun register(email: String, password: String, username: String) {
-
         if (!validateUsername(username)) {
             _registerState.value = Result.Error("Username deve ter pelo menos 3 caracteres")
             return
@@ -100,7 +85,6 @@ class RegisterViewModel(
             return
         }
 
-
         _isLoading.value = true
         _registerState.value = Result.Loading
 
@@ -109,28 +93,24 @@ class RegisterViewModel(
                 val result = authRepository.register(email, password, username)
                 _registerState.value = result
             } catch (e: Exception) {
-                _registerState.value = Result.Error(e.message ?: "Erro ao cadastrar")
+                _registerState.value = Result.Error(e.message ?: "Erro ao cadastrar", e)
             } finally {
                 _isLoading.value = false
             }
         }
     }
 
-
     fun validateUsername(username: String): Boolean {
         return username.length >= 3
     }
-
 
     fun validateEmail(email: String): Boolean {
         return android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()
     }
 
-
     fun validatePassword(password: String): Boolean {
         return password.length >= 6
     }
-
 
     fun clearError() {
         _registerState.value = null

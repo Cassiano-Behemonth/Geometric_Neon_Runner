@@ -6,12 +6,12 @@ plugins {
 }
 
 android {
-    namespace = "com.example.myapplication"
+    namespace = "com.example.geometric_neon_runner"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.example.myapplication"
-        minSdk = 24
+        applicationId = "com.example.geometric_neon_runner"
+        minSdk = 26
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"

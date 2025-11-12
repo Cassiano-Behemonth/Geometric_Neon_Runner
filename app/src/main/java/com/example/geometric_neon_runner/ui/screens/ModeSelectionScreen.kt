@@ -23,11 +23,11 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.geometric_neon_runner.ui.theme.DarkBackground
-import com.example.geometric_neon_runner.ui.theme.DarkSurface
-import com.example.geometric_neon_runner.ui.theme.NeonCyan
-import com.example.geometric_neon_runner.ui.theme.NeonMagenta
-import com.example.geometric_neon_runner.ui.theme.NeonPink
+import com.example.geometric_neon_runner.ui.color.DarkBackground
+import com.example.geometric_neon_runner.ui.color.DarkSurface
+import com.example.geometric_neon_runner.ui.color.NeonCyan
+import com.example.geometric_neon_runner.ui.color.NeonMagenta
+import com.example.geometric_neon_runner.ui.color.NeonPink
 import com.example.geometric_neon_runner.ui.theme.NeonTunnelTheme
 
 data class GameMode(

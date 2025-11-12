@@ -1,14 +1,15 @@
 package com.example.geometric_neon_runner.data.repository
 
+import android.content.Context
 import com.example.geometric_neon_runner.data.local.AppDatabase
 import com.example.geometric_neon_runner.data.model.Score
 import com.example.geometric_neon_runner.data.remote.FirestoreSource
+import com.example.geometric_neon_runner.utils.Result
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-
 class ScoreRepository(
-        private val context: AppDatabase,
+        private val context: Context,
         private val firestoreSource: FirestoreSource = FirestoreSource()
 ) {
     private val db by lazy { AppDatabase.getInstance(context) }
@@ -26,16 +27,15 @@ class ScoreRepository(
                     firestoreSource.updateBestScore(score.userId, score.mode, score.score)
                     Result.Success(Unit)
                 } else if (remoteResult is Result.Error) {
-                    Result.Error(remoteResult.exception, remoteResult.message)
+                    Result.Error(remoteResult.message, remoteResult.exception)
                 } else {
-                    Result.Error(Exception("Unknown error saving score remotely"))
+                    Result.Error("Unknown error saving score remotely")
                 }
             } catch (e: Exception) {
-                Result.Error(e)
+                Result.Error(e.message ?: "Unknown error", e)
             }
         }
     }
-
 
     suspend fun getGlobalRanking(mode: String, limit: Int = 50): Result<List<Score>> {
         return firestoreSource.getGlobalRanking(mode, limit)
@@ -62,12 +62,11 @@ class ScoreRepository(
                     if (res is Result.Success) {
                         dao.markAsSynced(s.copy(synced = true))
                         firestoreSource.updateBestScore(s.userId, s.mode, s.score)
-                    } else if (res is Result.Error) {
                     }
                 }
                 Result.Success(Unit)
             } catch (e: Exception) {
-                Result.Error(e)
+                Result.Error(e.message ?: "Unknown error", e)
             }
         }
     }

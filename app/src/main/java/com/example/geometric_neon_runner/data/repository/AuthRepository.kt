@@ -2,10 +2,11 @@ package com.example.geometric_neon_runner.data.repository
 
 import android.content.Context
 import android.content.SharedPreferences
-import com.example.geometric_neon_runner.data.model.*
+import com.example.geometric_neon_runner.data.model.User
 import com.example.geometric_neon_runner.data.remote.FirestoreSource
 import com.example.geometric_neon_runner.data.remote.FirebaseAuthSource
-import com.google.firebase.firestore.auth.User
+import com.example.geometric_neon_runner.utils.Constants
+import com.example.geometric_neon_runner.utils.Result
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -16,13 +17,7 @@ class AuthRepository(
 ) {
 
     private val prefs: SharedPreferences by lazy {
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-    }
-
-    companion object {
-        private const val KEY_UID = "uid"
-        private const val KEY_USERNAME = "username"
-        private const val KEY_EMAIL = "email"
+        context.getSharedPreferences(Constants.PREFS_NAME, Context.MODE_PRIVATE)
     }
 
     suspend fun register(email: String, password: String, username: String): Result<User> {
@@ -57,18 +52,18 @@ class AuthRepository(
     fun isUserLoggedIn(): Boolean = authSource.isUserLoggedIn()
 
     fun getCurrentUserId(): String? {
-        return prefs.getString(KEY_UID, null) ?: authSource.currentUser?.uid
+        return prefs.getString(Constants.KEY_USER_ID, null) ?: authSource.currentUser?.uid
     }
 
     fun getCurrentUsername(): String {
-        return prefs.getString(KEY_USERNAME, "") ?: ""
+        return prefs.getString(Constants.KEY_USERNAME, "") ?: ""
     }
 
     fun saveUserLocally(user: User) {
         prefs.edit()
-                .putString(KEY_UID, user.uid)
-                .putString(KEY_USERNAME, user.username)
-                .putString(KEY_EMAIL, user.email)
+                .putString(Constants.KEY_USER_ID, user.uid)
+                .putString(Constants.KEY_USERNAME, user.username)
+                .putString(Constants.KEY_EMAIL, user.email)
                 .apply()
     }
 

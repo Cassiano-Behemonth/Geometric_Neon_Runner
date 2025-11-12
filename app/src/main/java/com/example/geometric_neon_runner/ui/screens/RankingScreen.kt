@@ -1,55 +1,39 @@
 package com.example.geometric_neon_runner.ui.screens
 
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.geometric_neon_runner.ui.theme.DarkBackground
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-
-
-data class RankingItemModel(val username: String, val score: Int, val timeSeconds: Int)
-
-class RankingViewModel {
-    private val _normal = MutableStateFlow(List(50) { i -> RankingItemModel("User${i+1}", (5000 - i*50), 60 + i) })
-    val normal: StateFlow<List<RankingItemModel>> = _normal
-
-    private val _hard = MutableStateFlow(List(30) { i -> RankingItemModel("HardUser${i+1}", (3000 - i*40), 70 + i) })
-    val hard: StateFlow<List<RankingItemModel>> = _hard
-
-    private val _extreme = MutableStateFlow(List(20) { i -> RankingItemModel("Extreme${i+1}", (1500 - i*30), 90 + i) })
-    val extreme: StateFlow<List<RankingItemModel>> = _extreme
-
-    val currentUsername: StateFlow<String> = MutableStateFlow("PlayerOne")
-}
+import com.example.geometric_neon_runner.data.model.GameMode
+import com.example.geometric_neon_runner.ui.color.DarkBackground
+import com.example.geometric_neon_runner.ui.components.LoadingIndicator
+import com.example.geometric_neon_runner.ui.viewmodels.RankingViewModel
 
 @Composable
 fun RankingScreen(
         navController: NavController,
-        initialMode: String = "Normal",
-        vm: RankingViewModel = viewModel() as RankingViewModel
+        vm: RankingViewModel,
+        initialMode: String = "NORMAL"
 ) {
-    var selectedTab by remember { mutableStateOf(initialMode) }
-    val normal by vm.normal.collectAsState(initial = emptyList())
-    val hard by vm.hard.collectAsState(initial = emptyList())
-    val extreme by vm.extreme.collectAsState(initial = emptyList())
-    val currentUser by vm.currentUsername.collectAsState(initial = "")
+    val rankingList by vm.rankingList.collectAsState()
+    val selectedMode by vm.selectedMode.collectAsState()
+    val isLoading by vm.isLoading.collectAsState()
+    val errorMessage by vm.errorMessage.collectAsState()
+    val currentUserId by vm.currentUserId.collectAsState()
 
-    val items = when (selectedTab) {
-        "Normal" -> normal
-        "Hard" -> hard
-        "Extreme" -> extreme
-        else -> normal
+    // Set initial mode
+    LaunchedEffect(initialMode) {
+        val mode = GameMode.fromName(initialMode)
+        vm.changeMode(mode)
     }
 
     Column(
@@ -58,50 +42,179 @@ fun RankingScreen(
                     .background(DarkBackground)
                     .padding(12.dp)
     ) {
-        TabRow(selectedTabIndex = when (selectedTab) {
-            "Normal" -> 0
-            "Hard" -> 1
-            "Extreme" -> 2
-            else -> 0
-        }) {
-            Tab(selected = selectedTab == "Normal", onClick = { selectedTab = "Normal" }, text = { Text("Normal") })
-            Tab(selected = selectedTab == "Hard", onClick = { selectedTab = "Hard" }, text = { Text("Hard") })
-            Tab(selected = selectedTab == "Extreme", onClick = { selectedTab = "Extreme" }, text = { Text("Extreme") })
+        // Header with back button
+        Row(
+                modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = { navController.popBackStack() }) {
+                Icon(
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = "Back",
+                        tint = MaterialTheme.colorScheme.primary
+                )
+            }
+            Text(
+                    text = "RANKING",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(start = 16.dp)
+            )
         }
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
-            itemsIndexed(items) { index, item ->
-                RankingItem(
-                        position = index + 1,
-                        model = item,
-                        isCurrentUser = item.username == currentUser,
-                        modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
+        // Mode selector tabs
+        TabRow(
+                selectedTabIndex = when (selectedMode) {
+                    GameMode.NORMAL -> 0
+                    GameMode.HARD -> 1
+                    GameMode.EXTREME -> 2
+                }
+        ) {
+            Tab(
+                    selected = selectedMode == GameMode.NORMAL,
+                    onClick = { vm.changeMode(GameMode.NORMAL) },
+                    text = { Text("Normal") }
+            )
+            Tab(
+                    selected = selectedMode == GameMode.HARD,
+                    onClick = { vm.changeMode(GameMode.HARD) },
+                    text = { Text("Hard") }
+            )
+            Tab(
+                    selected = selectedMode == GameMode.EXTREME,
+                    onClick = { vm.changeMode(GameMode.EXTREME) },
+                    text = { Text("Extreme") }
+            )
+        }
 
-                                }
-                )
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Content
+        when {
+            isLoading -> {
+                Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                ) {
+                    LoadingIndicator()
+                }
+            }
+            errorMessage != null -> {
+                Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                                text = errorMessage ?: "Unknown error",
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodyLarge
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(onClick = { vm.refresh() }) {
+                            Text("Retry")
+                        }
+                    }
+                }
+            }
+            rankingList.isEmpty() -> {
+                Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                            text = "No scores yet",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onBackground
+                    )
+                }
+            }
+            else -> {
+                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    itemsIndexed(rankingList) { index, score ->
+                        RankingItem(
+                                position = index + 1,
+                                username = score.username,
+                                scoreValue = score.score,
+                                timeSeconds = score.timeSeconds,
+                                isCurrentUser = score.userId == currentUserId,
+                                modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { /* TODO: Show user profile */ }
+                        )
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-fun RankingItem(position: Int, model: RankingItemModel, isCurrentUser: Boolean, modifier: Modifier = Modifier) {
-    Card(modifier = modifier.padding(6.dp)) {
-        Row(modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
+fun RankingItem(
+        position: Int,
+        username: String,
+        scoreValue: Int,
+        timeSeconds: Int,
+        isCurrentUser: Boolean,
+        modifier: Modifier = Modifier
+) {
+    Card(
+            modifier = modifier.padding(vertical = 6.dp, horizontal = 4.dp),
+            colors = CardDefaults.cardColors(
+                    containerColor = if (isCurrentUser)
+                        MaterialTheme.colorScheme.primaryContainer
+                    else
+                        MaterialTheme.colorScheme.surface
+            )
+    ) {
+        Row(
+                modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(text = "#$position", style = MaterialTheme.typography.titleMedium, modifier = Modifier.width(64.dp))
+            Text(
+                    text = "#$position",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.width(64.dp),
+                    color = if (isCurrentUser)
+                        MaterialTheme.colorScheme.primary
+                    else
+                        MaterialTheme.colorScheme.onSurface
+            )
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = model.username, style = MaterialTheme.typography.titleSmall)
-                Text(text = "Time: ${model.timeSeconds}s", style = MaterialTheme.typography.bodySmall)
+                Text(
+                        text = username,
+                        style = MaterialTheme.typography.titleSmall,
+                        color = if (isCurrentUser)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                        text = "Time: ${formatTime(timeSeconds)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
             }
-            Text(text = "${model.score}", style = MaterialTheme.typography.titleMedium, color = if (isCurrentUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground)
+            Text(
+                    text = "$scoreValue",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = if (isCurrentUser)
+                        MaterialTheme.colorScheme.primary
+                    else
+                        MaterialTheme.colorScheme.onSurface
+            )
         }
     }
+}
+
+private fun formatTime(seconds: Int): String {
+    val minutes = seconds / 60
+    val secs = seconds % 60
+    return String.format("%02d:%02d", minutes, secs)
 }

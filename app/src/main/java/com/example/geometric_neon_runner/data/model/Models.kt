@@ -4,6 +4,38 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.google.firebase.firestore.DocumentSnapshot
 
+// Classe User customizada
+data class User(
+        val uid: String = "",
+        val username: String = "",
+        val email: String = "",
+        val createdAt: Long = System.currentTimeMillis(),
+        val bestScores: Map<String, Int> = emptyMap()
+) {
+    fun toMap(): Map<String, Any> {
+        return mapOf(
+                "uid" to uid,
+                "username" to username,
+                "email" to email,
+                "createdAt" to createdAt,
+                "bestScores" to bestScores
+        )
+    }
+
+    companion object {
+        fun fromDocument(doc: DocumentSnapshot): User {
+            val data = doc.data ?: return User()
+            return User(
+                    uid = data["uid"] as? String ?: doc.id,
+                    username = data["username"] as? String ?: "",
+                    email = data["email"] as? String ?: "",
+                    createdAt = (data["createdAt"] as? Number)?.toLong() ?: System.currentTimeMillis(),
+                    bestScores = (data["bestScores"] as? Map<String, Number>)?.mapValues { it.value.toInt() } ?: emptyMap()
+            )
+        }
+    }
+}
+
 @Entity(tableName = "scores")
 data class Score(
         @PrimaryKey(autoGenerate = true) val id: Int = 0,
@@ -46,7 +78,6 @@ data class Score(
         }
     }
 }
-
 
 enum class GameMode(val displayName: String, val baseSpeed: Float, val spawnInterval: Long, val color: String) {
     NORMAL("Normal", 1.0f, 800L, "#00FFAA"),

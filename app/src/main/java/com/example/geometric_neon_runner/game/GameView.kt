@@ -7,11 +7,13 @@ import android.view.SurfaceHolder
 import android.view.SurfaceView
 import com.example.geometric_neon_runner.game.entities.Enemy
 import com.example.geometric_neon_runner.game.entities.Player
+import com.example.geometric_neon_runner.game.render.GameRenderer
 import com.example.geometric_neon_runner.game.systems.CollisionSystem
 import com.example.geometric_neon_runner.game.systems.ScoreSystem
 import com.example.geometric_neon_runner.game.systems.SpawnMode
 import com.example.geometric_neon_runner.game.systems.SpawnSystem
 import kotlin.math.abs
+
 
 
 class GameView(context: Context, private val mode: SpawnMode = SpawnMode.NORMAL) :
@@ -103,7 +105,7 @@ class GameView(context: Context, private val mode: SpawnMode = SpawnMode.NORMAL)
 
         // update score
         scoreSystem.update(deltaTime)
-        onScoreChanged?.invoke(scoreSystem.getScore())
+        onScoreChanged?.invoke(scoreSystem.score)
 
         // check collisions
         checkCollisions()
@@ -125,7 +127,7 @@ class GameView(context: Context, private val mode: SpawnMode = SpawnMode.NORMAL)
                     color = 0xFFFFFFFF.toInt()
                     textSize = 40f
                 }
-                canvas.drawText("Score: ${scoreSystem.getScore()}", 20f, 50f, textPaint)
+                canvas.drawText("Score: ${scoreSystem.score}", 20f, 50f, textPaint)
                 canvas.drawText("Time: ${scoreSystem.getFormattedTime()}", 20f, 100f, textPaint)
             } finally {
                 holder.unlockCanvasAndPost(canvas)
@@ -208,7 +210,7 @@ class GameView(context: Context, private val mode: SpawnMode = SpawnMode.NORMAL)
                     // Game Over
                     gameState = GameState.GameOver
                     // stop the loop safely
-                    onGameOver?.invoke(scoreSystem.getScore(), scoreSystem.getTime())
+                    onGameOver?.invoke(scoreSystem.score, scoreSystem.getTime())
                     // stop game loop
                     gameLoop.stop()
                     break

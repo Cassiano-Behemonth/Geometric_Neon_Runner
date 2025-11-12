@@ -1,62 +1,53 @@
 package com.example.geometric_neon_runner.ui.screens
 
-
 import android.util.Patterns
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.geometric_neon_runner.ui.components.NeonButton
 import com.example.geometric_neon_runner.ui.components.NeonTextField
+import com.example.geometric_neon_runner.ui.components.LoadingIndicator
+import com.example.geometric_neon_runner.ui.navigation.Screen
 import com.example.geometric_neon_runner.ui.theme.NeonTunnelTheme
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-
-
-class AuthUiState(
-        val loading: Boolean = false,
-        val error: String? = null,
-        val username: String? = null
-)
-
-class AuthViewModel {
-
-    private val _uiState = MutableStateFlow(AuthUiState())
-    val uiState: StateFlow<AuthUiState> = _uiState
-
-    fun login(email: String, password: String) {
-
-    }
-
-    fun register(username: String, email: String, password: String) {
-
-    }
-}
+import com.example.geometric_neon_runner.ui.viewmodels.LoginViewModel
+import com.example.geometric_neon_runner.ui.viewmodels.RegisterViewModel
+import com.example.geometric_neon_runner.utils.Result
 
 @Composable
 fun LoginScreen(
         navController: NavController,
-        authViewModel: AuthViewModel = viewModel() as AuthViewModel // substitua pelo seu ViewModel
+        viewModel: LoginViewModel
 ) {
-    val uiState by authViewModel.uiState.collectAsState(initial = AuthUiState())
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var emailFocused by remember { mutableStateOf(false) }
-    var passwordFocused by remember { mutableStateOf(false) }
-    val isEmailValid = remember(email) { Patterns.EMAIL_ADDRESS.matcher(email).matches() }
-    val isPasswordValid = remember(password) { password.length >= 6 }
+
+    val loginState by viewModel.loginState.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+
+    val isEmailValid = remember(email) {
+        email.isEmpty() || Patterns.EMAIL_ADDRESS.matcher(email).matches()
+    }
+    val isPasswordValid = remember(password) {
+        password.isEmpty() || password.length >= 6
+    }
+
+    // Handle login success
+    LaunchedEffect(loginState) {
+        if (loginState is Result.Success) {
+            navController.navigate(Screen.Menu.route) {
+                popUpTo(Screen.Login.route) { inclusive = true }
+            }
+        }
+    }
 
     NeonTunnelTheme {
         Surface(
@@ -76,66 +67,71 @@ fun LoginScreen(
                     Text(
                             text = "NEON TUNNEL",
                             style = MaterialTheme.typography.headlineLarge,
+                            color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(bottom = 16.dp)
                     )
+
+                    Spacer(modifier = Modifier.height(32.dp))
 
                     NeonTextField(
                             value = email,
                             onValueChange = { email = it },
                             label = "Email",
-                            isError = email.isNotBlank() && !isEmailValid,
-                            keyboardOptions = KeyboardOptions(
-                                    keyboardType = KeyboardType.Email,
-                                    imeAction = ImeAction.Next
-                            ),
-                            onFocusChanged = { emailFocused = it.isFocused },
+                            isError = !isEmailValid,
                             modifier = Modifier.fillMaxWidth()
                     )
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
                     NeonTextField(
                             value = password,
                             onValueChange = { password = it },
                             label = "Password",
-                            isPassword = true,
-                            isError = password.isNotBlank() && !isPasswordValid,
-                            keyboardOptions = KeyboardOptions(
-                                    keyboardType = KeyboardType.Password,
-                                    imeAction = ImeAction.Done
-                            ),
-                            onFocusChanged = { passwordFocused = it.isFocused },
+                            isError = !isPasswordValid,
+                            visualTransformation = PasswordVisualTransformation(),
                             modifier = Modifier.fillMaxWidth()
                     )
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
 
-                    if (uiState.loading) {
-                        CircularProgressIndicator(modifier = Modifier.size(48.dp))
+                    if (isLoading) {
+                        LoadingIndicator(
+                                modifier = Modifier.size(48.dp)
+                        )
                     } else {
                         NeonButton(
                                 text = "LOGIN",
                                 onClick = {
-                                    if (isEmailValid && isPasswordValid) {
-                                        authViewModel.login(email, password)
+                                    if (email.isNotEmpty() && password.isNotEmpty()) {
+                                        viewModel.login(email, password)
                                     }
                                 },
-                                enabled = isEmailValid && isPasswordValid,
+                                enabled = email.isNotEmpty() && password.isNotEmpty() && isEmailValid && isPasswordValid,
                                 modifier = Modifier
                                         .fillMaxWidth()
                                         .height(56.dp)
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                    TextButton(onClick = { navController.navigate("register") }) {
-                        Text(text = "Don't have an account? Register", color = MaterialTheme.colorScheme.onBackground)
+                    TextButton(
+                            onClick = { navController.navigate(Screen.Register.route) }
+                    ) {
+                        Text(
+                                text = "Don't have an account? Register",
+                                color = MaterialTheme.colorScheme.onBackground
+                        )
                     }
 
-                    uiState.error?.let { err ->
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(text = err, color = Color.Red)
+                    // Show error if any
+                    if (loginState is Result.Error) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                                text = (loginState as Result.Error).message,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodyMedium
+                        )
                     }
                 }
             }
@@ -146,87 +142,129 @@ fun LoginScreen(
 @Composable
 fun RegisterScreen(
         navController: NavController,
-        authViewModel: AuthViewModel = viewModel() as AuthViewModel
+        viewModel: RegisterViewModel
 ) {
-    val uiState by authViewModel.uiState.collectAsState(initial = AuthUiState())
     var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
-    val isUsernameValid = remember(username) { username.length >= 3 }
-    val isEmailValid = remember(email) { Patterns.EMAIL_ADDRESS.matcher(email).matches() }
-    val isPasswordValid = remember(password) { password.length >= 6 }
+    val registerState by viewModel.registerState.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+
+    val isUsernameValid = remember(username) {
+        username.isEmpty() || username.length >= 3
+    }
+    val isEmailValid = remember(email) {
+        email.isEmpty() || Patterns.EMAIL_ADDRESS.matcher(email).matches()
+    }
+    val isPasswordValid = remember(password) {
+        password.isEmpty() || password.length >= 6
+    }
+
+    // Handle register success
+    LaunchedEffect(registerState) {
+        if (registerState is Result.Success) {
+            navController.navigate(Screen.Menu.route) {
+                popUpTo(Screen.Register.route) { inclusive = true }
+            }
+        }
+    }
 
     NeonTunnelTheme {
         Surface(
                 modifier = Modifier.fillMaxSize(),
                 color = MaterialTheme.colorScheme.background
         ) {
-            Column(
-                    modifier = Modifier
-                            .padding(24.dp)
-                            .fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
+            Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
             ) {
-                Text(
-                        text = "CREATE ACCOUNT",
-                        style = MaterialTheme.typography.headlineMedium,
-                        modifier = Modifier.padding(vertical = 8.dp)
-                )
+                Column(
+                        modifier = Modifier
+                                .padding(24.dp)
+                                .fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                            text = "CREATE ACCOUNT",
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(vertical = 16.dp)
+                    )
 
-                NeonTextField(
-                        value = username,
-                        onValueChange = { username = it },
-                        label = "Username",
-                        isError = username.isNotBlank() && !isUsernameValid,
-                        modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                NeonTextField(
-                        value = email,
-                        onValueChange = { email = it },
-                        label = "Email",
-                        isError = email.isNotBlank() && !isEmailValid,
-                        keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Email, imeAction = ImeAction.Next
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(12.dp))
+                    NeonTextField(
+                            value = username,
+                            onValueChange = { username = it },
+                            label = "Username",
+                            isError = !isUsernameValid,
+                            modifier = Modifier.fillMaxWidth()
+                    )
 
-                NeonTextField(
-                        value = password,
-                        onValueChange = { password = it },
-                        label = "Password",
-                        isPassword = true,
-                        isError = password.isNotBlank() && !isPasswordValid,
-                        modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                NeonButton(
-                        text = "REGISTER",
-                        onClick = {
-                            if (isUsernameValid && isEmailValid && isPasswordValid) {
-                                authViewModel.register(username, email, password)
-                                navController.navigate("menu") {
-                                    popUpTo("login") { inclusive = true }
-                                }
-                            }
-                        },
-                        enabled = isUsernameValid && isEmailValid && isPasswordValid,
-                        modifier = Modifier.fillMaxWidth().height(56.dp)
-                )
+                    NeonTextField(
+                            value = email,
+                            onValueChange = { email = it },
+                            label = "Email",
+                            isError = !isEmailValid,
+                            modifier = Modifier.fillMaxWidth()
+                    )
 
-                Spacer(modifier = Modifier.height(12.dp))
-                TextButton(onClick = { navController.navigate("login") }) {
-                    Text(text = "Back to Login", color = MaterialTheme.colorScheme.onBackground)
-                }
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                uiState.error?.let { err ->
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(text = err, color = Color.Red)
+                    NeonTextField(
+                            value = password,
+                            onValueChange = { password = it },
+                            label = "Password",
+                            isError = !isPasswordValid,
+                            visualTransformation = PasswordVisualTransformation(),
+                            modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    if (isLoading) {
+                        LoadingIndicator(
+                                modifier = Modifier.size(48.dp)
+                        )
+                    } else {
+                        NeonButton(
+                                text = "REGISTER",
+                                onClick = {
+                                    if (username.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty()) {
+                                        viewModel.register(email, password, username)
+                                    }
+                                },
+                                enabled = username.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty()
+                                        && isUsernameValid && isEmailValid && isPasswordValid,
+                                modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(56.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    TextButton(
+                            onClick = { navController.navigate(Screen.Login.route) }
+                    ) {
+                        Text(
+                                text = "Already have an account? Login",
+                                color = MaterialTheme.colorScheme.onBackground
+                        )
+                    }
+
+                    // Show error if any
+                    if (registerState is Result.Error) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                                text = (registerState as Result.Error).message,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
                 }
             }
         }
