@@ -61,7 +61,7 @@ fun LoginScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "NEON TUNNEL",
+                        text = "NEON RUNNER",
                         style = MaterialTheme.typography.headlineLarge,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(bottom = 16.dp)
@@ -253,7 +253,7 @@ fun RegisterScreen(
                         }
                     ) {
                         Text(
-                            text = "Already have an account? Login",
+                            text = "Ja tem uma conta? Faça Login",
                             color = MaterialTheme.colorScheme.onBackground
                         )
                     }
