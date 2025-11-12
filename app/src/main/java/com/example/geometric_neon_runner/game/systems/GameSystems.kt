@@ -13,58 +13,28 @@ class SpawnSystem(
     private val screenHeight: Int,
     var mode: SpawnMode = SpawnMode.NORMAL
 ) {
-    private val enemiesMutable = mutableListOf<Enemy>()
+    // Lista otimizada com capacidade inicial
+    private val enemiesMutable = ArrayList<Enemy>(100)
     private var spawnTimer = 0f
     private var elapsedTime = 0f
-    private var currentSpeed = 0f // Cache da velocidade atual
 
+    // Intervalo de spawn fixo por modo
     var spawnInterval: Float = when (mode) {
-        SpawnMode.NORMAL -> 1.0f
-        SpawnMode.HARD -> 0.8f
-        SpawnMode.EXTREME -> 0.6f
+        SpawnMode.NORMAL -> 0.9f
+        SpawnMode.HARD -> 0.7f
+        SpawnMode.EXTREME -> 0.55f
     }
 
-    // Velocidades base
-    private val baseSpeed: Float
-        get() = when (mode) {
-            SpawnMode.NORMAL -> 1000f
-            SpawnMode.HARD -> 1500f
-            SpawnMode.EXTREME -> 1900f
-        }
-
-    // Velocidade máxima
-    private val maxSpeed: Float
-        get() = when (mode) {
-            SpawnMode.NORMAL -> 1800f
-            SpawnMode.HARD -> 2500f
-            SpawnMode.EXTREME -> 3200f
-        }
-
-    init {
-        currentSpeed = baseSpeed // Inicializa com velocidade base
+    // VELOCIDADES FIXAS (sem aumento progressivo)
+    private val fixedSpeed: Float = when (mode) {
+        SpawnMode.NORMAL -> 1500f  // Velocidade que estava no Hard
+        SpawnMode.HARD -> 1900f    // Um pouco mais rápido
+        SpawnMode.EXTREME -> 2400f // Bem mais rápido
     }
-
-    // Atualiza a velocidade a cada segundo (não a cada frame)
-    private var speedUpdateTimer = 0f
 
     fun update(deltaTime: Float) {
         elapsedTime += deltaTime
         spawnTimer += deltaTime
-        speedUpdateTimer += deltaTime
-
-        // Atualiza velocidade apenas 1x por segundo (otimização)
-        if (speedUpdateTimer >= 1f) {
-            speedUpdateTimer = 0f
-            val speedIncrease = (elapsedTime / 30f) * (baseSpeed * 0.1f)
-            currentSpeed = (baseSpeed + speedIncrease).coerceAtMost(maxSpeed)
-        }
-
-        // Ajusta o intervalo de spawn
-        spawnInterval = when (mode) {
-            SpawnMode.NORMAL -> (1.0f - (elapsedTime / 120f) * 0.3f).coerceAtLeast(0.7f)
-            SpawnMode.HARD -> (0.8f - (elapsedTime / 120f) * 0.2f).coerceAtLeast(0.6f)
-            SpawnMode.EXTREME -> (0.6f - (elapsedTime / 120f) * 0.15f).coerceAtLeast(0.45f)
-        }
 
         if (spawnTimer >= spawnInterval) {
             spawnTimer -= spawnInterval
@@ -75,12 +45,13 @@ class SpawnSystem(
     private fun spawnEnemy(lane: Int) {
         val randomShape = EnemyShape.values().random()
 
+        // Usa sempre a velocidade fixa do modo
         val enemy = Enemy(
             screenWidth,
             screenHeight,
             lane,
             startY = -ENEMY_SIZE,
-            speed = currentSpeed, // Usa velocidade em cache
+            speed = fixedSpeed, // VELOCIDADE FIXA
             shape = randomShape
         )
         enemiesMutable.add(enemy)
@@ -88,12 +59,20 @@ class SpawnSystem(
 
     private fun spawnPattern() {
         val r = Random.nextFloat()
-        if (r <= 0.6f) {
-            // single enemy
+
+        // Probabilidade de spawnar 2 inimigos (varia por modo)
+        val twoEnemyProbability = when (mode) {
+            SpawnMode.NORMAL -> 0.55f  // 55% de chance de 2 inimigos
+            SpawnMode.HARD -> 0.65f    // 65% de chance
+            SpawnMode.EXTREME -> 0.75f // 75% de chance (bem difícil!)
+        }
+
+        if (r <= (1f - twoEnemyProbability)) {
+            // Um inimigo apenas
             val lane = Random.nextInt(0, 3)
             spawnEnemy(lane)
         } else {
-            // two enemies, leaving 1 lane free
+            // Dois inimigos (deixa 1 pista livre)
             val free = Random.nextInt(0, 3)
             for (lane in 0..2) {
                 if (lane != free) spawnEnemy(lane)
@@ -111,12 +90,10 @@ class SpawnSystem(
         enemiesMutable.clear()
         spawnTimer = 0f
         elapsedTime = 0f
-        speedUpdateTimer = 0f
-        currentSpeed = baseSpeed
     }
 
     fun getDebugInfo(): String {
-        return "Speed: ${currentSpeed.toInt()} | Interval: ${"%.2f".format(spawnInterval)}s"
+        return "Speed: ${fixedSpeed.toInt()}px/s (FIXED) | Spawn: ${"%.2f".format(spawnInterval)}s | Mode: ${mode.name}"
     }
 }
 

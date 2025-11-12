@@ -4,9 +4,12 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
+import android.graphics.LinearGradient
+import android.graphics.Shader
 import com.example.geometric_neon_runner.game.entities.Enemy
 import com.example.geometric_neon_runner.game.entities.EnemyShape
 import com.example.geometric_neon_runner.game.entities.Player
+import kotlin.math.sin
 
 class GameRenderer(
     var screenWidth: Int,
@@ -14,66 +17,100 @@ class GameRenderer(
 ) {
 
     private var gridOffsetY = 0f
+    private var animationTime = 0f
 
     private val gridPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0x2200FFFF
         strokeWidth = 2f
         style = Paint.Style.STROKE
-        setShadowLayer(10f, 0f, 0f, 0x4400FFFF)
     }
 
     private val lanePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0x33FFFFFF.toInt()
         strokeWidth = 4f
         style = Paint.Style.STROKE
-        setShadowLayer(14f, 0f, 0f, 0x2200FFFF)
+        setShadowLayer(12f, 0f, 0f, 0xFF00FFFF.toInt())
     }
 
-    private val linePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        strokeWidth = 2f
-        style = Paint.Style.STROKE
-    }
-
-    private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = 0xFFFFFFFF.toInt()
-        textSize = 36f
-    }
-
-    private val tempRect = RectF()
-    private val tempPath = Path()
+    private val backgroundPaint = Paint(Paint.ANTI_ALIAS_FLAG)
 
     fun render(canvas: Canvas, player: Player, enemies: List<Enemy>) {
-        drawGradientLines(canvas)
+        drawSimpleNeonBackground(canvas)
+        drawCleanGrid(canvas)
         drawLanes(canvas)
         drawEnemies(canvas, enemies)
         drawPlayer(canvas, player)
     }
 
-    private fun drawGradientLines(canvas: Canvas) {
-        // Gradiente simples (preto -> azul escuro)
-        canvas.drawRGB(0, 0, 10)
+    private fun drawSimpleNeonBackground(canvas: Canvas) {
+        // Fundo base preto suave
+        canvas.drawRGB(8, 8, 20)
 
-        val spacing = 150f
+        // Gradiente simples de 2 cores apenas
+        val gradient = LinearGradient(
+            0f, 0f,
+            0f, screenHeight.toFloat(),
+            intArrayOf(
+                0xFF0a0a1a.toInt(), // Azul escuro no topo
+                0xFF1a0a2a.toInt()  // Roxo escuro embaixo
+            ),
+            floatArrayOf(0f, 1f),
+            Shader.TileMode.CLAMP
+        )
+
+        backgroundPaint.shader = gradient
+        backgroundPaint.alpha = 120
+        canvas.drawRect(0f, 0f, screenWidth.toFloat(), screenHeight.toFloat(), backgroundPaint)
+
+        // Apenas algumas estrelas fixas e suaves
+        drawSoftStars(canvas)
+    }
+
+    private fun drawSoftStars(canvas: Canvas) {
+        val starPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.FILL
+        }
+
+        // Apenas 15 estrelas pequenas e sutis
+        for (i in 0 until 15) {
+            val x = ((i * 97 + animationTime * 20) % screenWidth).toFloat()
+            val y = ((i * 157 + animationTime * 15) % screenHeight).toFloat()
+
+            // Brilho suave
+            val twinkle = (0.4f + 0.3f * sin(animationTime * 2f + i * 0.5f)).toFloat()
+            val size = 1.5f * twinkle
+
+            // Cor suave ciano ou branco
+            starPaint.color = if (i % 2 == 0) 0x6600FFFF.toInt() else 0x66FFFFFF.toInt()
+
+            canvas.drawCircle(x, y, size, starPaint)
+        }
+    }
+
+    private fun drawCleanGrid(canvas: Canvas) {
+        val spacing = 120f
         var offset = gridOffsetY % spacing
         if (offset < 0) offset += spacing
 
         var y = -spacing + offset
-        var lineCount = 0
 
         while (y < screenHeight + spacing) {
-            // Alterna entre duas cores
-            linePaint.color = if (lineCount % 2 == 0) 0x2200FFFF else 0x2200FF88
-            linePaint.strokeWidth = 1.5f
+            // Linhas sutis e leves
+            gridPaint.color = 0x2200AAFF.toInt() // Azul bem transparente
+            gridPaint.strokeWidth = 1.5f
 
-            canvas.drawLine(0f, y, screenWidth.toFloat(), y, linePaint)
+            canvas.drawLine(0f, y, screenWidth.toFloat(), y, gridPaint)
             y += spacing
-            lineCount++
         }
     }
 
     fun drawLanes(canvas: Canvas) {
         val leftSep = screenWidth * 0.375f
         val rightSep = screenWidth * 0.625f
+
+        // Linhas das pistas com pulse suave
+        val pulse = (0.6f + 0.2f * sin(animationTime * 2.5).toFloat())
+
+        lanePaint.color = 0xFF00DDFF.toInt() // Ciano mais suave
+        lanePaint.alpha = (180 * pulse).toInt()
 
         canvas.drawLine(leftSep, 0f, leftSep, screenHeight.toFloat(), lanePaint)
         canvas.drawLine(rightSep, 0f, rightSep, screenHeight.toFloat(), lanePaint)
@@ -83,21 +120,19 @@ class GameRenderer(
         player.draw(canvas)
     }
 
-    // MÉTODO ATUALIZADO - cores diferentes por forma
     fun drawEnemies(canvas: Canvas, enemies: List<Enemy>) {
         for (e in enemies) {
-            // Escolhe cor base pela forma do inimigo
+            // Cores vibrantes mas não excessivas
             val baseColor = when (e.shape) {
-                EnemyShape.TRIANGLE -> 0xFF00FFFF.toInt()  // Ciano (original)
+                EnemyShape.TRIANGLE -> 0xFF00FFFF.toInt()  // Ciano
                 EnemyShape.SQUARE -> 0xFFFF00FF.toInt()    // Magenta
                 EnemyShape.CIRCLE -> 0xFF00FF88.toInt()    // Verde neon
                 EnemyShape.HEXAGON -> 0xFFFFAA00.toInt()   // Laranja
                 EnemyShape.DIAMOND -> 0xFFFF0088.toInt()   // Rosa
             }
 
-            // Se estiver na zona de perigo, muda para vermelho
             if (e.isInDangerZone()) {
-                e.setColor(0xFFFF5555.toInt())
+                e.setColor(0xFFFF4444.toInt()) // Vermelho suave
             } else {
                 e.setColor(baseColor)
             }
@@ -109,5 +144,6 @@ class GameRenderer(
     fun update(deltaTime: Float) {
         val scrollSpeed = 120f
         gridOffsetY += scrollSpeed * deltaTime
+        animationTime += deltaTime
     }
 }

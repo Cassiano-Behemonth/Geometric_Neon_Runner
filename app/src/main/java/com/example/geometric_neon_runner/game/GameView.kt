@@ -99,14 +99,8 @@ class GameView(context: Context, private val mode: SpawnMode = SpawnMode.NORMAL)
         val canvas: Canvas? = holder.lockCanvas()
         if (canvas != null) {
             try {
-                // Clear screen
                 canvas.drawRGB(0, 0, 0)
-
-                // Render game objects (sem HUD)
                 renderer.render(canvas, player, synchronizedListCopy())
-
-                // NÃO desenhar HUD aqui - será feito no Compose
-
             } finally {
                 holder.unlockCanvasAndPost(canvas)
             }
