@@ -46,7 +46,7 @@ fun MenuScreen(
             Spacer(modifier = Modifier.height(64.dp))
 
             Text(
-                text = "NEON TUNNEL",
+                text = "NEON RUNNER",
                 style = MaterialTheme.typography.displayLarge.copy(color = MaterialTheme.colorScheme.primary),
                 modifier = Modifier.padding(bottom = 8.dp)
             )
@@ -83,7 +83,7 @@ fun MenuScreen(
 
                 MenuButton(
                     text = "PROFILE",
-                    onClick = { /* TODO: Profile screen */ },
+                    onClick = { navController.navigate(Screen.Profile.route) },
                     icon = Icons.Default.Person,
                     neonColor = MaterialTheme.colorScheme.tertiary
                 )

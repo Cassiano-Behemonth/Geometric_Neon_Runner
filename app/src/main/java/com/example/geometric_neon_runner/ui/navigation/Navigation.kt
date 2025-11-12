@@ -19,6 +19,7 @@ sealed class Screen(val route: String) {
     object Register : Screen("register")
     object Menu : Screen("menu")
     object ModeSelection : Screen("mode_selection")
+    object Profile : Screen("profile")
 
     object Game : Screen("game/{mode}") {
         fun createRoute(mode: String) = "game/$mode"
@@ -39,7 +40,6 @@ fun AppNavigation(
 ) {
     val context = LocalContext.current
 
-    // Create repositories (only once)
     val authRepository = AuthRepository(context)
     val scoreRepository = ScoreRepository(context)
 
@@ -53,7 +53,6 @@ fun AppNavigation(
         navController = navController,
         startDestination = startDestination
     ) {
-        // Login Screen
         composable(Screen.Login.route) {
             val viewModel: LoginViewModel = viewModel(
                 factory = ViewModelFactory { LoginViewModel(authRepository) }
@@ -65,7 +64,6 @@ fun AppNavigation(
             )
         }
 
-        // Register Screen
         composable(Screen.Register.route) {
             val viewModel: RegisterViewModel = viewModel(
                 factory = ViewModelFactory { RegisterViewModel(authRepository) }
@@ -77,7 +75,6 @@ fun AppNavigation(
             )
         }
 
-        // Menu Screen
         composable(Screen.Menu.route) {
             val viewModel: MenuViewModel = viewModel(
                 factory = ViewModelFactory { MenuViewModel(authRepository, scoreRepository) }
@@ -89,7 +86,6 @@ fun AppNavigation(
             )
         }
 
-        // Mode Selection Screen
         composable(Screen.ModeSelection.route) {
             val viewModel: MenuViewModel = viewModel(
                 factory = ViewModelFactory { MenuViewModel(authRepository, scoreRepository) }
@@ -108,7 +104,17 @@ fun AppNavigation(
             )
         }
 
-        // Game Screen
+        composable(Screen.Profile.route) {
+            val viewModel: ProfileViewModel = viewModel(
+                factory = ViewModelFactory { ProfileViewModel(authRepository, scoreRepository) }
+            )
+
+            ProfileScreen(
+                navController = navController,
+                viewModel = viewModel
+            )
+        }
+
         composable(
             route = Screen.Game.route,
             arguments = listOf(
@@ -127,7 +133,6 @@ fun AppNavigation(
             )
         }
 
-        // GameOver Screen
         composable(
             route = Screen.GameOver.route,
             arguments = listOf(
@@ -152,7 +157,6 @@ fun AppNavigation(
             )
         }
 
-        // Ranking Screen
         composable(
             route = Screen.Ranking.route,
             arguments = listOf(
