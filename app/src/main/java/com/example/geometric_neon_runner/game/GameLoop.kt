@@ -1,9 +1,5 @@
 package com.example.geometric_neon_runner.game
 
-import com.example.geometric_neon_runner.game.entities.*
-import com.example.geometric_neon_runner.game.systems.*
-import com.example.geometric_neon_runner.game.render.GameRenderer
-
 class GameLoop(private val gameView: GameView) : Runnable {
     @Volatile
     private var running = false
@@ -31,22 +27,27 @@ class GameLoop(private val gameView: GameView) : Runnable {
         var lastTime = System.currentTimeMillis()
         while (running) {
             val currentTime = System.currentTimeMillis()
-            val deltaTime = (currentTime - lastTime) / 1000f
+            var deltaTime = (currentTime - lastTime) / 1000f
             lastTime = currentTime
+
+            // CORREÇÃO DO LAG: Limita o deltaTime máximo
+            // Se o frame demorar muito (lag), não deixa os objetos "pularem"
+            if (deltaTime > 0.05f) { // Máximo de 50ms (20 FPS mínimo)
+                deltaTime = 0.05f
+            }
 
             try {
                 gameView.update(deltaTime)
                 gameView.render()
             } catch (t: Throwable) {
-
                 t.printStackTrace()
             }
 
-
+            // Tenta manter ~60 FPS
             try {
                 Thread.sleep(16)
             } catch (ie: InterruptedException) {
-
+                // ignorar
             }
         }
     }

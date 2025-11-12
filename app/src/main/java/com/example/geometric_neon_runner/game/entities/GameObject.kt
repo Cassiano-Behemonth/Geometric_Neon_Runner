@@ -4,10 +4,16 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
 import kotlin.math.abs
-
+import kotlin.math.cos
+import kotlin.math.sin
 
 const val PLAYER_SIZE = 40f
-const val ENEMY_SIZE = 35f
+const val ENEMY_SIZE = 40f
+
+// Enum para as formas - NOVA ADIÇÃO
+enum class EnemyShape {
+    TRIANGLE, SQUARE, CIRCLE, HEXAGON, DIAMOND
+}
 
 class Player(
     var screenWidth: Int,
@@ -16,7 +22,6 @@ class Player(
 ) {
     var currentLane: Int = initialLane
         private set
-
 
     var x: Float = 0f
     private var targetX: Float = 0f
@@ -42,7 +47,6 @@ class Player(
         targetX = getLaneX(clamped)
     }
 
-
     fun update(deltaTime: Float) {
         val lerpSpeed = 10f
         x += (targetX - x) * (1f - Math.exp((-lerpSpeed * deltaTime).toDouble())).toFloat()
@@ -51,7 +55,6 @@ class Player(
     }
 
     fun draw(canvas: Canvas) {
-
         path.reset()
         val half = size / 2f
         path.moveTo(x, y - half) // topo
@@ -62,7 +65,6 @@ class Player(
     }
 
     fun getLaneX(lane: Int): Float {
-        // 3 lanes: 0.25, 0.5, 0.75 do screenWidth
         val factor = when (lane.coerceIn(0,2)) {
             0 -> 0.25f
             1 -> 0.5f
@@ -76,8 +78,9 @@ class Enemy(
     val screenWidth: Int,
     val screenHeight: Int,
     val lane: Int,
-    startY: Float = -ENEMY_SIZE, // começa acima da tela
-    var speed: Float = 400f // px / s (ajustável pelo mode)
+    startY: Float = -ENEMY_SIZE,
+    var speed: Float = 400f,
+    val shape: EnemyShape = EnemyShape.TRIANGLE // NOVA PROPRIEDADE com valor padrão
 ) {
     val x: Float = getLaneX(lane)
     var y: Float = startY
@@ -86,10 +89,9 @@ class Enemy(
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         strokeWidth = 2f
         style = Paint.Style.FILL_AND_STROKE
-        setShadowLayer(10f, 0f, 0f, 0x6600FFFF) // neon glow default
+        setShadowLayer(10f, 0f, 0f, 0x6600FFFF)
     }
     private val path = Path()
-
 
     fun setColor(colorInt: Int) {
         paint.color = colorInt
@@ -99,13 +101,67 @@ class Enemy(
         y += speed * deltaTime
     }
 
+    // MÉTODO draw() ATUALIZADO para desenhar diferentes formas
     fun draw(canvas: Canvas) {
+        when (shape) {
+            EnemyShape.TRIANGLE -> drawTriangle(canvas)
+            EnemyShape.SQUARE -> drawSquare(canvas)
+            EnemyShape.CIRCLE -> drawCircle(canvas)
+            EnemyShape.HEXAGON -> drawHexagon(canvas)
+            EnemyShape.DIAMOND -> drawDiamond(canvas)
+        }
+    }
 
+    // NOVOS MÉTODOS para desenhar cada forma
+    private fun drawTriangle(canvas: Canvas) {
         path.reset()
         val half = size / 2f
         path.moveTo(x, y + half) // bottom tip (pointing down)
         path.lineTo(x - half, y - half) // top-left
         path.lineTo(x + half, y - half) // top-right
+        path.close()
+        canvas.drawPath(path, paint)
+    }
+
+    private fun drawSquare(canvas: Canvas) {
+        val half = size / 2f
+        canvas.drawRect(
+            x - half,
+            y - half,
+            x + half,
+            y + half,
+            paint
+        )
+    }
+
+    private fun drawCircle(canvas: Canvas) {
+        canvas.drawCircle(x, y, size / 2f, paint)
+    }
+
+    private fun drawHexagon(canvas: Canvas) {
+        path.reset()
+        val radius = size / 2f
+        for (i in 0..5) {
+            val angle = (Math.PI / 3.0 * i).toFloat()
+            val px = x + radius * cos(angle)
+            val py = y + radius * sin(angle)
+            if (i == 0) {
+                path.moveTo(px, py)
+            } else {
+                path.lineTo(px, py)
+            }
+        }
+        path.close()
+        canvas.drawPath(path, paint)
+    }
+
+    private fun drawDiamond(canvas: Canvas) {
+        path.reset()
+        val half = size / 2f
+        path.moveTo(x, y - half) // top
+        path.lineTo(x + half, y) // right
+        path.lineTo(x, y + half) // bottom
+        path.lineTo(x - half, y) // left
         path.close()
         canvas.drawPath(path, paint)
     }
