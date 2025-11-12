@@ -161,7 +161,6 @@ fun RegisterScreen(
     LaunchedEffect(registerState) {
         if (registerState is Result.Success) {
             showSuccessMessage = true
-            delay(2000) // Espera 2 segundos para mostrar a mensagem
             navController.navigate(Screen.Login.route) {
                 popUpTo(Screen.Register.route) { inclusive = true }
             }
