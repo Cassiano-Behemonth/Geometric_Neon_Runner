@@ -1,6 +1,5 @@
 package com.example.geometric_neon_runner.ui.screens
 
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -15,7 +14,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -29,27 +29,43 @@ import com.example.geometric_neon_runner.ui.color.NeonCyan
 import com.example.geometric_neon_runner.ui.color.NeonMagenta
 import com.example.geometric_neon_runner.ui.color.NeonPink
 import com.example.geometric_neon_runner.ui.theme.NeonTunnelTheme
+import com.example.geometric_neon_runner.ui.viewmodels.MenuViewModel
 
-data class GameMode(
+data class GameModeInfo(
     val name: String,
     val description: String,
     val color: Color,
     val bestScore: Int
 )
 
-
 @Composable
 fun ModeSelectionScreen(
     onModeSelected: (mode: String) -> Unit,
-    onBackPressed: () -> Unit
+    onBackPressed: () -> Unit,
+    viewModel: MenuViewModel
 ) {
-    val modes = remember {
-        listOf(
-            GameMode("Normal", "Experiência padrão. Velocidade constante, obstáculos moderados.", NeonCyan, 128456),
-            GameMode("Hard", "Mais rápido, mais obstáculos e túnel mais estreito. Desafio intermediário.", NeonMagenta, 55390),
-            GameMode("Extreme", "Velocidade máxima, padrões de obstáculos complexos. Apenas para profissionais.", NeonPink, 10245)
+    val bestScores by viewModel.bestScores.collectAsState()
+
+    val modes = listOf(
+        GameModeInfo(
+            "NORMAL",
+            "Experiência padrão. Velocidade constante, obstáculos moderados.",
+            NeonCyan,
+            bestScores["NORMAL"] ?: 0
+        ),
+        GameModeInfo(
+            "HARD",
+            "Mais rápido, mais obstáculos e túnel mais estreito. Desafio intermediário.",
+            NeonMagenta,
+            bestScores["HARD"] ?: 0
+        ),
+        GameModeInfo(
+            "EXTREME",
+            "Velocidade máxima, padrões de obstáculos complexos. Apenas para profissionais.",
+            NeonPink,
+            bestScores["EXTREME"] ?: 0
         )
-    }
+    )
 
     NeonTunnelTheme {
         Box(
@@ -66,7 +82,9 @@ fun ModeSelectionScreen(
                 Spacer(modifier = Modifier.height(32.dp))
                 Text(
                     text = "SELECT MODE",
-                    style = MaterialTheme.typography.displayLarge.copy(color = MaterialTheme.colorScheme.secondary),
+                    style = MaterialTheme.typography.displayMedium.copy(
+                        color = MaterialTheme.colorScheme.primary
+                    ),
                     modifier = Modifier.padding(bottom = 24.dp)
                 )
 
@@ -93,16 +111,16 @@ fun ModeSelectionScreen(
                 Icon(
                     imageVector = Icons.Default.ArrowBack,
                     contentDescription = "Voltar",
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(32.dp)
                 )
             }
         }
     }
 }
 
-
 @Composable
-private fun ModeCard(mode: GameMode, onClick: () -> Unit) {
+private fun ModeCard(mode: GameModeInfo, onClick: () -> Unit) {
     val shape = RoundedCornerShape(12.dp)
     val shadowColor = mode.color.copy(alpha = 0.8f)
 
@@ -126,7 +144,7 @@ private fun ModeCard(mode: GameMode, onClick: () -> Unit) {
         horizontalAlignment = Alignment.Start
     ) {
         Text(
-            text = mode.name.uppercase(),
+            text = mode.name,
             style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
             color = mode.color
         )

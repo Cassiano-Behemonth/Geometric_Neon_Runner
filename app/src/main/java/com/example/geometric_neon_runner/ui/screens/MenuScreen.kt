@@ -17,18 +17,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.example.geometric_neon_runner.ui.color.DarkBackground
 import com.example.geometric_neon_runner.ui.components.NeonButton
 import com.example.geometric_neon_runner.ui.theme.NeonTunnelTheme
 import com.example.geometric_neon_runner.ui.viewmodels.MenuViewModel
+import com.example.geometric_neon_runner.ui.navigation.Screen
 
 @Composable
 fun MenuScreen(
-        viewModel: MenuViewModel,
-        onPlayClicked: () -> Unit,
-        onRankingClicked: () -> Unit,
-        onProfileClicked: () -> Unit,
-        onExitClicked: () -> Unit
+    viewModel: MenuViewModel,
+    navController: NavController
 ) {
     val username by viewModel.username.collectAsState()
     val bestScores by viewModel.bestScores.collectAsState()
@@ -38,23 +37,23 @@ fun MenuScreen(
 
     NeonTunnelTheme {
         Column(
-                modifier = Modifier
-                        .fillMaxSize()
-                        .background(DarkBackground)
-                        .padding(32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier
+                .fillMaxSize()
+                .background(DarkBackground)
+                .padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(64.dp))
 
             Text(
-                    text = "NEON TUNNEL",
-                    style = MaterialTheme.typography.displayLarge.copy(color = MaterialTheme.colorScheme.primary),
-                    modifier = Modifier.padding(bottom = 8.dp)
+                text = "NEON TUNNEL",
+                style = MaterialTheme.typography.displayLarge.copy(color = MaterialTheme.colorScheme.primary),
+                modifier = Modifier.padding(bottom = 8.dp)
             )
             Text(
-                    text = "MAIN MENU",
-                    style = MaterialTheme.typography.headlineLarge.copy(color = MaterialTheme.colorScheme.secondary),
-                    modifier = Modifier.padding(bottom = 48.dp)
+                text = "MAIN MENU",
+                style = MaterialTheme.typography.headlineLarge.copy(color = MaterialTheme.colorScheme.secondary),
+                modifier = Modifier.padding(bottom = 48.dp)
             )
 
             PlayerStatus(username = username, bestScore = bestScore)
@@ -62,38 +61,45 @@ fun MenuScreen(
             Spacer(modifier = Modifier.height(48.dp))
 
             Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.fillMaxWidth(0.8f)
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.fillMaxWidth(0.8f)
             ) {
                 MenuButton(
-                        text = "P L A Y",
-                        onClick = onPlayClicked,
-                        icon = Icons.Default.Star,
-                        neonColor = MaterialTheme.colorScheme.primary
+                    text = "P L A Y",
+                    onClick = {
+                        navController.navigate(Screen.ModeSelection.route)
+                    },
+                    icon = Icons.Default.Star,
+                    neonColor = MaterialTheme.colorScheme.primary
                 )
 
                 MenuButton(
-                        text = "RANKING",
-                        onClick = onRankingClicked,
-                        icon = Icons.Default.Person,
-                        neonColor = MaterialTheme.colorScheme.secondary
+                    text = "RANKING",
+                    onClick = { navController.navigate(Screen.Ranking.createRoute("NORMAL")) },
+                    icon = Icons.Default.Person,
+                    neonColor = MaterialTheme.colorScheme.secondary
                 )
 
                 MenuButton(
-                        text = "PROFILE",
-                        onClick = onProfileClicked,
-                        icon = Icons.Default.Person,
-                        neonColor = MaterialTheme.colorScheme.tertiary
+                    text = "PROFILE",
+                    onClick = { /* TODO: Profile screen */ },
+                    icon = Icons.Default.Person,
+                    neonColor = MaterialTheme.colorScheme.tertiary
                 )
 
                 Spacer(modifier = Modifier.height(32.dp))
 
                 MenuButton(
-                        text = "LOGOUT",
-                        onClick = onExitClicked,
-                        icon = Icons.Default.ExitToApp,
-                        neonColor = Color.Gray.copy(alpha = 0.8f)
+                    text = "LOGOUT",
+                    onClick = {
+                        viewModel.logout()
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(Screen.Menu.route) { inclusive = true }
+                        }
+                    },
+                    icon = Icons.Default.ExitToApp,
+                    neonColor = Color.Gray.copy(alpha = 0.8f)
                 )
             }
         }
@@ -104,32 +110,32 @@ fun MenuScreen(
 private fun PlayerStatus(username: String, bestScore: Int) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
-                text = "RUNNER: $username",
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.primary
+            text = "RUNNER: $username",
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.primary
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-                text = "BEST SCORE: $bestScore",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.secondary
+            text = "BEST SCORE: $bestScore",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.secondary
         )
     }
 }
 
 @Composable
 private fun MenuButton(
-        text: String,
-        onClick: () -> Unit,
-        icon: ImageVector,
-        neonColor: Color
+    text: String,
+    onClick: () -> Unit,
+    icon: ImageVector,
+    neonColor: Color
 ) {
     NeonButton(
-            onClick = onClick,
-            text = text,
-            neonColor = neonColor,
-            modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
+        onClick = onClick,
+        text = text,
+        neonColor = neonColor,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp)
     )
 }
