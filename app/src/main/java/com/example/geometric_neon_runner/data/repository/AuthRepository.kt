@@ -11,9 +11,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 class AuthRepository(
-        private val context: Context,
-        private val authSource: FirebaseAuthSource = FirebaseAuthSource(firestoreSource = FirestoreSource()),
-        private val firestoreSource: FirestoreSource = FirestoreSource()
+    private val context: Context,
+    private val authSource: FirebaseAuthSource = FirebaseAuthSource(firestoreSource = FirestoreSource()),
+    private val firestoreSource: FirestoreSource = FirestoreSource()
 ) {
 
     private val prefs: SharedPreferences by lazy {
@@ -26,6 +26,7 @@ class AuthRepository(
             if (res is Result.Success) {
                 saveUserLocally(res.data)
             }
+            // Se falhar, presumimos que authSource.register já retorna Result.Error ou lança exceção.
             res
         }
     }
@@ -33,10 +34,24 @@ class AuthRepository(
     suspend fun login(email: String, password: String): Result<User> {
         return withContext(Dispatchers.IO) {
             val res = authSource.login(email, password)
-            if (res is Result.Success) {
-                saveUserLocally(res.data)
+
+            when (res) {
+                is Result.Success -> {
+                    saveUserLocally(res.data)
+                    res
+                }
+                is Result.Error -> {
+                    // 🛑 NOVO: Relança a exceção do Firebase para que o ViewModel possa identificá-la.
+                    // ATENÇÃO: Se o seu Result.Error não tem um campo 'exception', esta linha falhará.
+                    if (res.exception != null) {
+                        throw res.exception
+                    } else {
+                        // Se não há exceção, retorna o Result.Error original
+                        res
+                    }
+                }
+                is Result.Loading -> res
             }
-            res
         }
     }
 
@@ -61,10 +76,10 @@ class AuthRepository(
 
     fun saveUserLocally(user: User) {
         prefs.edit()
-                .putString(Constants.KEY_USER_ID, user.uid)
-                .putString(Constants.KEY_USERNAME, user.username)
-                .putString(Constants.KEY_EMAIL, user.email)
-                .apply()
+            .putString(Constants.KEY_USER_ID, user.uid)
+            .putString(Constants.KEY_USERNAME, user.username)
+            .putString(Constants.KEY_EMAIL, user.email)
+            .apply()
     }
 
     fun clearUserLocally() {

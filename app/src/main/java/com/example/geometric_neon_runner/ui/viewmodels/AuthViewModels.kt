@@ -5,13 +5,14 @@ import androidx.lifecycle.viewModelScope
 import com.example.geometric_neon_runner.data.model.User
 import com.example.geometric_neon_runner.data.repository.AuthRepository
 import com.example.geometric_neon_runner.utils.Result
+import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException // Importação necessária
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class LoginViewModel(
-        private val authRepository: AuthRepository
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _loginState = MutableStateFlow<Result<User>?>(null)
@@ -38,8 +39,12 @@ class LoginViewModel(
             try {
                 val result = authRepository.login(email, password)
                 _loginState.value = result
+            } catch (e: FirebaseAuthInvalidCredentialsException) {
+                // 🛑 CORREÇÃO: Captura o erro específico de credenciais inválidas
+                _loginState.value = Result.Error("Email ou senha inválidos", e)
             } catch (e: Exception) {
-                _loginState.value = Result.Error(e.message ?: "Erro ao fazer login", e)
+                // Outros erros (rede, usuário desativado, etc.)
+                _loginState.value = Result.Error(e.message ?: "Erro desconhecido ao fazer login", e)
             } finally {
                 _isLoading.value = false
             }
@@ -59,8 +64,10 @@ class LoginViewModel(
     }
 }
 
+// ---------------------------------------------------------------------------------------------------
+
 class RegisterViewModel(
-        private val authRepository: AuthRepository
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _registerState = MutableStateFlow<Result<User>?>(null)
@@ -93,6 +100,7 @@ class RegisterViewModel(
                 val result = authRepository.register(email, password, username)
                 _registerState.value = result
             } catch (e: Exception) {
+                // Nota: Para capturar o erro de "email já em uso", adicione FirebaseAuthUserCollisionException
                 _registerState.value = Result.Error(e.message ?: "Erro ao cadastrar", e)
             } finally {
                 _isLoading.value = false
