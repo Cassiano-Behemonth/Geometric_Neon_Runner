@@ -17,9 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavController
-import com.example.geometric_neon_runner.data.model.GameMode
 import com.example.geometric_neon_runner.game.GameView
-import com.example.geometric_neon_runner.game.systems.SpawnMode
 import com.example.geometric_neon_runner.ui.color.DarkBackground
 import com.example.geometric_neon_runner.ui.navigation.Screen
 import com.example.geometric_neon_runner.ui.viewmodels.GameViewModel
@@ -31,48 +29,31 @@ fun GameScreen(
     mode: String
 ) {
     val context = LocalContext.current
+
+    // Observar estados do ViewModel
     val currentScore by viewModel.currentScore.collectAsState()
+    val elapsedTime by viewModel.elapsedTime.collectAsState()
+    val gameMode by viewModel.gameMode.collectAsState()
     val shouldNavigateToGameOver by viewModel.shouldNavigateToGameOver.collectAsState()
 
-    // Convert string mode to GameMode enum
-    val gameMode = GameMode.fromName(mode)
-
-    // Convert GameMode to SpawnMode for GameView
-    val spawnMode = when (gameMode) {
-        GameMode.NORMAL -> SpawnMode.NORMAL
-        GameMode.HARD -> SpawnMode.HARD
-        GameMode.EXTREME -> SpawnMode.EXTREME
+    // Inicializar o jogo uma única vez
+    LaunchedEffect(mode) {
+        viewModel.initializeGame(mode)
     }
 
-    // Set game mode in ViewModel
-    LaunchedEffect(gameMode) {
-        viewModel.setGameMode(gameMode)
-    }
-
-    // Handle navigation to GameOver
+    // Observar navegação (responsabilidade do ViewModel)
     LaunchedEffect(shouldNavigateToGameOver) {
         if (shouldNavigateToGameOver) {
+            val finalScore = viewModel.finalScore
+            val finalTime = viewModel.finalTime
+            val modeName = viewModel.gameMode.value.name
+
             navController.navigate(
-                Screen.GameOver.createRoute(
-                    viewModel.finalScore,
-                    viewModel.finalTime,
-                    gameMode.name
-                )
+                Screen.GameOver.createRoute(finalScore, finalTime, modeName)
             ) {
                 popUpTo(Screen.Game.createRoute(mode)) { inclusive = true }
             }
             viewModel.onNavigatedToGameOver()
-        }
-    }
-
-    var gameView by remember { mutableStateOf<GameView?>(null) }
-    var elapsedTime by remember { mutableStateOf(0) }
-
-    // Timer para atualizar o tempo a cada segundo
-    LaunchedEffect(Unit) {
-        while (true) {
-            kotlinx.coroutines.delay(1000)
-            elapsedTime++
         }
     }
 
@@ -84,10 +65,8 @@ fun GameScreen(
         // Game View
         AndroidView(
             factory = { ctx ->
-                GameView(ctx, spawnMode).apply {
-                    gameView = this
-
-                    // Set callbacks
+                GameView(ctx, viewModel.getSpawnMode()).apply {
+                    // Delegar callbacks ao ViewModel
                     onGameOver = { score, time ->
                         viewModel.onGameOver(score, time)
                     }
@@ -96,78 +75,91 @@ fun GameScreen(
                         viewModel.updateScore(score)
                     }
 
-                    // Start the game
                     startGame()
                 }
             },
             modifier = Modifier.fillMaxSize(),
             onRelease = { view ->
                 view.stopGame()
+                viewModel.onGameStopped()
             }
         )
 
-        // HUD Overlay - Card no canto superior esquerdo
-        Card(
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = Color.Black.copy(alpha = 0.7f)
-            ),
-            shape = RoundedCornerShape(12.dp)
+        // HUD Overlay
+        GameHUD(
+            gameMode = gameMode,
+            currentScore = currentScore,
+            elapsedTime = elapsedTime,
+            modifier = Modifier.align(Alignment.TopStart)
+        )
+    }
+}
+
+@Composable
+private fun GameHUD(
+    gameMode: com.example.geometric_neon_runner.data.model.GameMode,
+    currentScore: Int,
+    elapsedTime: Int,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.padding(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.Black.copy(alpha = 0.7f)
+        ),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+            // Mode
+            Text(
+                text = gameMode.displayName.uppercase(),
+                style = MaterialTheme.typography.labelLarge,
+                color = Color(android.graphics.Color.parseColor(gameMode.color)),
+                fontWeight = FontWeight.Bold,
+                fontSize = 12.sp
+            )
+
+            // Score
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Mode
                 Text(
-                    text = gameMode.displayName.uppercase(),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = Color(android.graphics.Color.parseColor(gameMode.color)),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp
+                    text = "SCORE",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White.copy(alpha = 0.7f),
+                    fontSize = 10.sp
                 )
+                Text(
+                    text = "$currentScore",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 24.sp
+                )
+            }
 
-                // Score
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = "SCORE",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.White.copy(alpha = 0.7f),
-                        fontSize = 10.sp
-                    )
-                    Text(
-                        text = "$currentScore",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 24.sp
-                    )
-                }
-
-                // Time
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = "TIME",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.White.copy(alpha = 0.7f),
-                        fontSize = 10.sp
-                    )
-                    Text(
-                        text = formatTime(elapsedTime),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.White,
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 16.sp
-                    )
-                }
+            // Time
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "TIME",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White.copy(alpha = 0.7f),
+                    fontSize = 10.sp
+                )
+                Text(
+                    text = formatTime(elapsedTime),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.White,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 16.sp
+                )
             }
         }
     }

@@ -41,12 +41,12 @@ import com.example.geometric_neon_runner.ui.color.NeonPink
 
 @Composable
 fun NeonButton(
-        onClick: () -> Unit,
-        text: String,
-        neonColor: Color = NeonCyan,
-        modifier: Modifier = Modifier,
-        enabled: Boolean = true,
-        contentPadding: PaddingValues = ButtonDefaults.ContentPadding
+    onClick: () -> Unit,
+    text: String,
+    neonColor: Color = NeonCyan,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    contentPadding: PaddingValues = ButtonDefaults.ContentPadding
 ) {
     // Efeito de pulsação suave para o brilho (opcional, mas adiciona vida)
     val infiniteTransition = rememberInfiniteTransition(label = "neon_glow_pulse")
@@ -101,7 +101,9 @@ fun NeonTextField(
     label: String,
     modifier: Modifier = Modifier,
     isError: Boolean = false,
-    visualTransformation: VisualTransformation = VisualTransformation.None
+    visualTransformation: VisualTransformation = VisualTransformation.None,
+    // NOVO: Adiciona o parâmetro supportingText
+    supportingText: (@Composable () -> Unit)? = null
 ) {
     val baseColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
     val errorColor = MaterialTheme.colorScheme.error
@@ -142,6 +144,9 @@ fun NeonTextField(
         },
         singleLine = true,
         textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onBackground),
+        // NOVO: Adiciona o slot supportingText para a mensagem de erro
+        supportingText = supportingText,
+        isError = isError, // Garante que o estado de erro é passado
         colors = TextFieldDefaults.colors(
             focusedContainerColor = containerColor,
             unfocusedContainerColor = containerColor,

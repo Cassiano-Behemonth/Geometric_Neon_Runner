@@ -19,6 +19,7 @@ import com.example.geometric_neon_runner.ui.viewmodels.RegisterViewModel
 import com.example.geometric_neon_runner.utils.Result
 import kotlinx.coroutines.delay
 
+// Tela de Login
 @Composable
 fun LoginScreen(
     navController: NavController,
@@ -26,16 +27,22 @@ fun LoginScreen(
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var hasAttemptedLogin by remember { mutableStateOf(false) }
 
     val loginState by viewModel.loginState.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
     val isEmailValid = remember(email) {
-        email.isEmpty() || Patterns.EMAIL_ADDRESS.matcher(email).matches()
+        Patterns.EMAIL_ADDRESS.matcher(email).matches()
     }
     val isPasswordValid = remember(password) {
-        password.isEmpty() || password.length >= 6
+        password.length >= 6
     }
+
+    val showEmailError = hasAttemptedLogin && email.isNotEmpty() && !isEmailValid
+    val showPasswordError = hasAttemptedLogin && password.isNotEmpty() && !isPasswordValid
+
+    val isLoginButtonEnabled = email.isNotEmpty() && password.isNotEmpty() && isEmailValid && isPasswordValid
 
     LaunchedEffect(loginState) {
         if (loginState is Result.Success) {
@@ -73,7 +80,10 @@ fun LoginScreen(
                         value = email,
                         onValueChange = { email = it },
                         label = "Email",
-                        isError = !isEmailValid,
+                        isError = showEmailError,
+                        supportingText = if (showEmailError) {
+                            { Text("Email inválido") }
+                        } else null,
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -82,8 +92,11 @@ fun LoginScreen(
                     NeonTextField(
                         value = password,
                         onValueChange = { password = it },
-                        label = "Password",
-                        isError = !isPasswordValid,
+                        label = "Senha",
+                        isError = showPasswordError,
+                        supportingText = if (showPasswordError) {
+                            { Text("Senha inválida (mín. 6 caracteres)") }
+                        } else null,
                         visualTransformation = PasswordVisualTransformation(),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -91,18 +104,17 @@ fun LoginScreen(
                     Spacer(modifier = Modifier.height(24.dp))
 
                     if (isLoading) {
-                        LoadingIndicator(
-                            modifier = Modifier.size(48.dp)
-                        )
+                        LoadingIndicator(modifier = Modifier.size(48.dp))
                     } else {
                         NeonButton(
-                            text = "LOGIN",
+                            text = "ENTRAR",
                             onClick = {
-                                if (email.isNotEmpty() && password.isNotEmpty()) {
+                                hasAttemptedLogin = true
+                                if (isLoginButtonEnabled) {
                                     viewModel.login(email, password)
                                 }
                             },
-                            enabled = email.isNotEmpty() && password.isNotEmpty() && isEmailValid && isPasswordValid,
+                            enabled = isLoginButtonEnabled,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(56.dp)
@@ -115,15 +127,22 @@ fun LoginScreen(
                         onClick = { navController.navigate(Screen.Register.route) }
                     ) {
                         Text(
-                            text = "Don't have an account? Register",
+                            text = "Não tem uma conta? Cadastre-se",
                             color = MaterialTheme.colorScheme.onBackground
                         )
                     }
 
+                    // Mensagem de erro de backend (loginState)
                     if (loginState is Result.Error) {
                         Spacer(modifier = Modifier.height(16.dp))
+                        val errorMessage = (loginState as Result.Error).message
+                        val displayMessage = if (errorMessage.contains("invalid", ignoreCase = true)) {
+                            "Usuário ou senha inválidos"
+                        } else {
+                            errorMessage
+                        }
                         Text(
-                            text = (loginState as Result.Error).message,
+                            text = displayMessage,
                             color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodyMedium
                         )
@@ -134,6 +153,9 @@ fun LoginScreen(
     }
 }
 
+// ---------------------------------------------------------------------------------------------------
+
+// Tela de Registro
 @Composable
 fun RegisterScreen(
     navController: NavController,
@@ -143,25 +165,26 @@ fun RegisterScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var showSuccessMessage by remember { mutableStateOf(false) }
+    var hasAttemptedRegister by remember { mutableStateOf(false) }
 
     val registerState by viewModel.registerState.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
-    val isUsernameValid = remember(username) {
-        username.isEmpty() || username.length >= 3
-    }
-    val isEmailValid = remember(email) {
-        email.isEmpty() || Patterns.EMAIL_ADDRESS.matcher(email).matches()
-    }
-    val isPasswordValid = remember(password) {
-        password.isEmpty() || password.length >= 6
-    }
+    val isUsernameValid = remember(username) { username.length >= 3 }
+    val isEmailValid = remember(email) { Patterns.EMAIL_ADDRESS.matcher(email).matches() }
+    val isPasswordValid = remember(password) { password.length >= 6 }
 
-    // Efeito para redirecionar após sucesso
+    val showUsernameError = hasAttemptedRegister && username.isNotEmpty() && !isUsernameValid
+    val showEmailError = hasAttemptedRegister && email.isNotEmpty() && !isEmailValid
+    val showPasswordError = hasAttemptedRegister && password.isNotEmpty() && !isPasswordValid
+
+    val isRegisterButtonEnabled = username.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty()
+            && isUsernameValid && isEmailValid && isPasswordValid
+
     LaunchedEffect(registerState) {
         if (registerState is Result.Success) {
             showSuccessMessage = true
-            delay(1000) // Espera 2 segundos para mostrar a mensagem
+            delay(1000)
             navController.navigate(Screen.Login.route) {
                 popUpTo(Screen.Register.route) { inclusive = true }
             }
@@ -184,7 +207,7 @@ fun RegisterScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "CREATE ACCOUNT",
+                        text = "CRIAR CONTA",
                         style = MaterialTheme.typography.headlineMedium,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(vertical = 16.dp)
@@ -195,8 +218,11 @@ fun RegisterScreen(
                     NeonTextField(
                         value = username,
                         onValueChange = { username = it },
-                        label = "Username",
-                        isError = !isUsernameValid,
+                        label = "Nome de usuário",
+                        isError = showUsernameError,
+                        supportingText = if (showUsernameError) {
+                            { Text("Nome de usuário inválido (mín. 3 caracteres)") }
+                        } else null,
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -206,7 +232,10 @@ fun RegisterScreen(
                         value = email,
                         onValueChange = { email = it },
                         label = "Email",
-                        isError = !isEmailValid,
+                        isError = showEmailError,
+                        supportingText = if (showEmailError) {
+                            { Text("Email inválido") }
+                        } else null,
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -215,8 +244,11 @@ fun RegisterScreen(
                     NeonTextField(
                         value = password,
                         onValueChange = { password = it },
-                        label = "Password",
-                        isError = !isPasswordValid,
+                        label = "Senha",
+                        isError = showPasswordError,
+                        supportingText = if (showPasswordError) {
+                            { Text("Senha inválida (mín. 6 caracteres)") }
+                        } else null,
                         visualTransformation = PasswordVisualTransformation(),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -224,19 +256,17 @@ fun RegisterScreen(
                     Spacer(modifier = Modifier.height(24.dp))
 
                     if (isLoading) {
-                        LoadingIndicator(
-                            modifier = Modifier.size(48.dp)
-                        )
+                        LoadingIndicator(modifier = Modifier.size(48.dp))
                     } else {
                         NeonButton(
-                            text = "REGISTER",
+                            text = "CADASTRAR",
                             onClick = {
-                                if (username.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty()) {
+                                hasAttemptedRegister = true
+                                if (isRegisterButtonEnabled) {
                                     viewModel.register(email, password, username)
                                 }
                             },
-                            enabled = username.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty()
-                                    && isUsernameValid && isEmailValid && isPasswordValid,
+                            enabled = isRegisterButtonEnabled,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(56.dp)
@@ -253,12 +283,11 @@ fun RegisterScreen(
                         }
                     ) {
                         Text(
-                            text = "Ja tem uma conta? Faça Login",
+                            text = "Já tem uma conta? Faça Login",
                             color = MaterialTheme.colorScheme.onBackground
                         )
                     }
 
-                    // Mensagem de erro para email duplicado
                     if (registerState is Result.Error) {
                         Spacer(modifier = Modifier.height(16.dp))
                         val errorMsg = (registerState as Result.Error).message
@@ -267,7 +296,7 @@ fun RegisterScreen(
                             errorMsg.contains("email address is already in use", ignoreCase = true) ||
                                     errorMsg.contains("already exists", ignoreCase = true) ||
                                     errorMsg.contains("already in use", ignoreCase = true) ->
-                                "Esta conta já foi registrada. Por favor, faça login ou use outro email."
+                                "Este email já está em uso. Tente outro ou faça login."
                             else -> errorMsg
                         }
 
@@ -278,7 +307,6 @@ fun RegisterScreen(
                         )
                     }
 
-                    // Mensagem de sucesso
                     if (showSuccessMessage) {
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(

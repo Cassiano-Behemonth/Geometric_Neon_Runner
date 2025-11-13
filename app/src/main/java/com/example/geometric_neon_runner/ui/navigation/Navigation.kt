@@ -1,7 +1,9 @@
 package com.example.geometric_neon_runner.ui.navigation
 
+import android.app.Application
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -14,6 +16,7 @@ import com.example.geometric_neon_runner.data.repository.ScoreRepository
 import com.example.geometric_neon_runner.ui.screens.*
 import com.example.geometric_neon_runner.ui.viewmodels.*
 
+// ========== SEALED CLASS DE ROTAS ==========
 sealed class Screen(val route: String) {
     object Login : Screen("login")
     object Register : Screen("register")
@@ -34,16 +37,35 @@ sealed class Screen(val route: String) {
     }
 }
 
+// ========== DEPENDENCY CONTAINER ==========
+class AppDependencies(
+    val authRepository: AuthRepository,
+    val scoreRepository: ScoreRepository
+)
+
+// ========== VIEW MODEL FACTORY ==========
+class ViewModelFactory<T>(private val creator: () -> T) : androidx.lifecycle.ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        return creator() as T
+    }
+}
+
+// ========== NAVIGATION COMPOSABLE ==========
 @Composable
 fun AppNavigation(
     navController: NavHostController = rememberNavController()
 ) {
-    val context = LocalContext.current
+    val context = LocalContext.current.applicationContext
 
-    val authRepository = AuthRepository(context)
-    val scoreRepository = ScoreRepository(context)
+    // Criar dependências uma única vez
+    val dependencies = AppDependencies(
+        authRepository = AuthRepository(context),
+        scoreRepository = ScoreRepository(context)
+    )
 
-    val startDestination = if (authRepository.isUserLoggedIn()) {
+    // Determinar rota inicial
+    val startDestination = if (dependencies.authRepository.isUserLoggedIn()) {
         Screen.Menu.route
     } else {
         Screen.Login.route
@@ -53,9 +75,12 @@ fun AppNavigation(
         navController = navController,
         startDestination = startDestination
     ) {
+        // ========== LOGIN SCREEN ==========
         composable(Screen.Login.route) {
             val viewModel: LoginViewModel = viewModel(
-                factory = ViewModelFactory { LoginViewModel(authRepository) }
+                factory = ViewModelFactory {
+                    LoginViewModel(dependencies.authRepository)
+                }
             )
 
             LoginScreen(
@@ -64,9 +89,12 @@ fun AppNavigation(
             )
         }
 
+        // ========== REGISTER SCREEN ==========
         composable(Screen.Register.route) {
             val viewModel: RegisterViewModel = viewModel(
-                factory = ViewModelFactory { RegisterViewModel(authRepository) }
+                factory = ViewModelFactory {
+                    RegisterViewModel(dependencies.authRepository)
+                }
             )
 
             RegisterScreen(
@@ -75,9 +103,15 @@ fun AppNavigation(
             )
         }
 
+        // ========== MENU SCREEN ==========
         composable(Screen.Menu.route) {
             val viewModel: MenuViewModel = viewModel(
-                factory = ViewModelFactory { MenuViewModel(authRepository, scoreRepository) }
+                factory = ViewModelFactory {
+                    MenuViewModel(
+                        dependencies.authRepository,
+                        dependencies.scoreRepository
+                    )
+                }
             )
 
             MenuScreen(
@@ -86,9 +120,15 @@ fun AppNavigation(
             )
         }
 
+        // ========== MODE SELECTION SCREEN ==========
         composable(Screen.ModeSelection.route) {
             val viewModel: MenuViewModel = viewModel(
-                factory = ViewModelFactory { MenuViewModel(authRepository, scoreRepository) }
+                factory = ViewModelFactory {
+                    MenuViewModel(
+                        dependencies.authRepository,
+                        dependencies.scoreRepository
+                    )
+                }
             )
 
             ModeSelectionScreen(
@@ -104,9 +144,15 @@ fun AppNavigation(
             )
         }
 
+        // ========== PROFILE SCREEN ==========
         composable(Screen.Profile.route) {
             val viewModel: ProfileViewModel = viewModel(
-                factory = ViewModelFactory { ProfileViewModel(authRepository, scoreRepository) }
+                factory = ViewModelFactory {
+                    ProfileViewModel(
+                        dependencies.authRepository,
+                        dependencies.scoreRepository
+                    )
+                }
             )
 
             ProfileScreen(
@@ -115,6 +161,7 @@ fun AppNavigation(
             )
         }
 
+        // ========== GAME SCREEN ==========
         composable(
             route = Screen.Game.route,
             arguments = listOf(
@@ -123,7 +170,12 @@ fun AppNavigation(
         ) { backStackEntry ->
             val mode = backStackEntry.arguments?.getString("mode") ?: "NORMAL"
             val viewModel: GameViewModel = viewModel(
-                factory = ViewModelFactory { GameViewModel(scoreRepository, authRepository) }
+                factory = ViewModelFactory {
+                    GameViewModel(
+                        dependencies.scoreRepository,
+                        dependencies.authRepository
+                    )
+                }
             )
 
             GameScreen(
@@ -133,6 +185,7 @@ fun AppNavigation(
             )
         }
 
+        // ========== GAME OVER SCREEN ==========
         composable(
             route = Screen.GameOver.route,
             arguments = listOf(
@@ -145,10 +198,6 @@ fun AppNavigation(
             val time = backStackEntry.arguments?.getInt("time") ?: 0
             val mode = backStackEntry.arguments?.getString("mode") ?: "NORMAL"
 
-            val viewModel: GameOverViewModel = viewModel(
-                factory = ViewModelFactory { GameOverViewModel(scoreRepository) }
-            )
-
             GameOverScreen(
                 navController = navController,
                 score = score,
@@ -157,6 +206,7 @@ fun AppNavigation(
             )
         }
 
+        // ========== RANKING SCREEN ==========
         composable(
             route = Screen.Ranking.route,
             arguments = listOf(
@@ -168,7 +218,12 @@ fun AppNavigation(
         ) { backStackEntry ->
             val mode = backStackEntry.arguments?.getString("mode") ?: "NORMAL"
             val viewModel: RankingViewModel = viewModel(
-                factory = ViewModelFactory { RankingViewModel(scoreRepository, authRepository) }
+                factory = ViewModelFactory {
+                    RankingViewModel(
+                        dependencies.scoreRepository,
+                        dependencies.authRepository
+                    )
+                }
             )
 
             RankingScreen(
@@ -177,12 +232,5 @@ fun AppNavigation(
                 initialMode = mode
             )
         }
-    }
-}
-
-class ViewModelFactory<T>(private val creator: () -> T) : androidx.lifecycle.ViewModelProvider.Factory {
-    @Suppress("UNCHECKED_CAST")
-    override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
-        return creator() as T
     }
 }
