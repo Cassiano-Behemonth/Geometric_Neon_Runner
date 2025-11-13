@@ -69,8 +69,8 @@ class GameRenderer(
             style = Paint.Style.FILL
         }
 
-        // Apenas 15 estrelas pequenas e sutis
-        for (i in 0 until 15) {
+        // Apenas 8 estrelas para melhor performance
+        for (i in 0 until 8) {
             val x = ((i * 97 + animationTime * 20) % screenWidth).toFloat()
             val y = ((i * 157 + animationTime * 15) % screenHeight).toFloat()
 

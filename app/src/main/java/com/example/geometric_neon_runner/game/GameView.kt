@@ -37,17 +37,21 @@ class GameView(context: Context, private val mode: SpawnMode = SpawnMode.NORMAL)
     private var downY = 0f
     private var isDragging = false
 
+    // Screen dimensions
+    private var screenWidth = 0
+    private var screenHeight = 0
+
     init {
         holder.addCallback(this)
     }
 
     private fun initSystems() {
-        val w = width.takeIf { it > 0 } ?: resources.displayMetrics.widthPixels
-        val h = height.takeIf { it > 0 } ?: resources.displayMetrics.heightPixels
+        screenWidth = width.takeIf { it > 0 } ?: resources.displayMetrics.widthPixels
+        screenHeight = height.takeIf { it > 0 } ?: resources.displayMetrics.heightPixels
 
-        player = Player(w, h, initialLane = 1)
-        spawnSystem = SpawnSystem(w, h, mode)
-        renderer = GameRenderer(w, h)
+        player = Player(screenWidth, screenHeight, initialLane = 1)
+        spawnSystem = SpawnSystem(screenWidth, screenHeight, mode)
+        renderer = GameRenderer(screenWidth, screenHeight)
         scoreSystem.reset()
         enemies.clear()
 
@@ -82,8 +86,21 @@ class GameView(context: Context, private val mode: SpawnMode = SpawnMode.NORMAL)
             while (iter.hasNext()) {
                 val e = iter.next()
                 e.update(deltaTime)
-                if (e.isOffScreen()) {
+
+                // Remove inimigos que saíram MUITO da tela (otimização)
+                // Dá uma margem maior para evitar "pulos visuais"
+                if (e.y > screenHeight + 200f) {
                     iter.remove()
+                    spawnSystem.removeEnemy(e)
+                }
+            }
+
+            // Limite máximo de inimigos para evitar lag
+            while (enemies.size > 60) {
+                val oldest = enemies.firstOrNull()
+                if (oldest != null) {
+                    enemies.remove(oldest)
+                    spawnSystem.removeEnemy(oldest)
                 }
             }
         }
@@ -165,12 +182,10 @@ class GameView(context: Context, private val mode: SpawnMode = SpawnMode.NORMAL)
     private fun checkCollisions() {
         val plX = player.x
         val plY = player.y
-        val threshold = 45f
+        val threshold = 50f
 
         synchronized(enemies) {
-            val iter = enemies.iterator()
-            while (iter.hasNext()) {
-                val e = iter.next()
+            for (e in enemies) {
                 if (collisionSystem.checkCollision(plX, plY, e, threshold)) {
                     gameState = GameState.GameOver
                     onGameOver?.invoke(scoreSystem.score, scoreSystem.getTime())
@@ -187,7 +202,8 @@ class GameView(context: Context, private val mode: SpawnMode = SpawnMode.NORMAL)
     }
 
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
-        // Update sizes if needed
+        screenWidth = width
+        screenHeight = height
     }
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {

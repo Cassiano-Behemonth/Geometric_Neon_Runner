@@ -24,16 +24,21 @@ class GameLoop(private val gameView: GameView) : Runnable {
     }
 
     override fun run() {
-        var lastTime = System.currentTimeMillis()
+        var lastTime = System.nanoTime() // MUDADO para nanoTime (mais preciso)
         while (running) {
-            val currentTime = System.currentTimeMillis()
-            var deltaTime = (currentTime - lastTime) / 1000f
+            val currentTime = System.nanoTime()
+            var deltaTime = (currentTime - lastTime) / 1_000_000_000f // nanosegundos para segundos
             lastTime = currentTime
 
-            // CORREÇÃO DO LAG: Limita o deltaTime máximo
-            // Se o frame demorar muito (lag), não deixa os objetos "pularem"
-            if (deltaTime > 0.05f) { // Máximo de 50ms (20 FPS mínimo)
-                deltaTime = 0.05f
+            // CORREÇÃO DO LAG: Limita o deltaTime de forma mais suave
+            // Evita "pulos" mas permite compensação gradual
+            if (deltaTime > 0.033f) { // Máximo de 33ms (30 FPS mínimo)
+                deltaTime = 0.033f
+            }
+
+            // Ignora frames muito pequenos (podem causar instabilidade)
+            if (deltaTime < 0.001f) {
+                deltaTime = 0.001f
             }
 
             try {
@@ -43,11 +48,17 @@ class GameLoop(private val gameView: GameView) : Runnable {
                 t.printStackTrace()
             }
 
-            // Tenta manter ~60 FPS
-            try {
-                Thread.sleep(16)
-            } catch (ie: InterruptedException) {
-                // ignorar
+            // Tenta manter ~60 FPS com sleep mais preciso
+            val frameTime = (System.nanoTime() - currentTime) / 1_000_000 // em ms
+            val targetFrameTime = 16L // ~60 FPS
+            val sleepTime = targetFrameTime - frameTime
+
+            if (sleepTime > 0) {
+                try {
+                    Thread.sleep(sleepTime)
+                } catch (ie: InterruptedException) {
+                    // ignorar
+                }
             }
         }
     }

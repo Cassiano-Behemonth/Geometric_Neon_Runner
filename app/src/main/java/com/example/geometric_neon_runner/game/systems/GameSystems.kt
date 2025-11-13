@@ -20,16 +20,16 @@ class SpawnSystem(
 
     // Intervalo de spawn fixo por modo
     var spawnInterval: Float = when (mode) {
-        SpawnMode.NORMAL -> 0.9f
-        SpawnMode.HARD -> 0.7f
-        SpawnMode.EXTREME -> 0.55f
+        SpawnMode.NORMAL -> 1.2f   // Mais espaçado
+        SpawnMode.HARD -> 0.85f    // Intermediário
+        SpawnMode.EXTREME -> 0.6f  // Mais frequente
     }
 
     // VELOCIDADES FIXAS (sem aumento progressivo)
     private val fixedSpeed: Float = when (mode) {
-        SpawnMode.NORMAL -> 1500f  // Velocidade que estava no Hard
-        SpawnMode.HARD -> 1900f    // Um pouco mais rápido
-        SpawnMode.EXTREME -> 2400f // Bem mais rápido
+        SpawnMode.NORMAL -> 600f   // Velocidade moderada
+        SpawnMode.HARD -> 950f     // Mais rápido
+        SpawnMode.EXTREME -> 1400f // Bem mais rápido
     }
 
     fun update(deltaTime: Float) {
@@ -102,7 +102,10 @@ class CollisionSystem {
         val dx = enemy.x - playerX
         val dy = enemy.y - playerY
         val dist = hypot(dx.toDouble(), dy.toDouble())
-        return dist < threshold
+
+        // Colisão mais generosa para objetos rápidos
+        val adjustedThreshold = threshold + (enemy.speed * 0.015f)
+        return dist < adjustedThreshold
     }
 }
 

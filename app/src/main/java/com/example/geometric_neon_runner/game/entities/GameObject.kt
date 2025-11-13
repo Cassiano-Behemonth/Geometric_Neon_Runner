@@ -167,7 +167,8 @@ class Enemy(
     }
 
     fun isOffScreen(): Boolean {
-        return y - size > screenHeight + size
+        // Margem maior para evitar remoção prematura em alta velocidade
+        return y > screenHeight + 150f
     }
 
     fun isInDangerZone(): Boolean {
